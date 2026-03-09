@@ -12,6 +12,8 @@ class ProjectPaths:
     schema_path: Path
     portfolio_state_path: Path
     target_allocation_path: Path
+    market_data_primary_path: Path
+    market_data_backup_path: Path
 
 
 def discover_paths() -> ProjectPaths:
@@ -24,4 +26,6 @@ def discover_paths() -> ProjectPaths:
         schema_path=project_root / "src" / "investment_agent" / "db" / "schema.sql",
         portfolio_state_path=project_root / "system" / "portfolio_state.json",
         target_allocation_path=project_root / "system" / "target_allocation.json",
+        market_data_primary_path=project_root / "system" / "market_data_primary.json",
+        market_data_backup_path=project_root / "system" / "market_data_backup.json",
     )

@@ -22,21 +22,19 @@ tester, and acceptance layer.
 - root/project deployment and rewrite plans are documented in `ops/deploy/`
 - key investment docs in staging have already been rewritten
 - repo is initialized and pushed to GitHub
+- first runnable investment slice is merged into `projects/investment`
+- market-data mock provider baseline, fallback logic, and SQLite persistence are now implemented
 
 ## In Progress
-- finish the remaining investment staging rewrites
-- scaffold the first runnable code slice under the repo
-- implement SQLite baseline and first verification loop
+- extend the investment codebase beyond bootstrap into reusable provider/service layers
+- keep validation docs and OpenClaw acceptance commands aligned with the real CLI surface
 
 ## Next Steps
-1. rewrite remaining investment docs:
-   - `agent/SKILL_ROUTING.md`
-   - `agent/PLAYBOOK_FULL_SYSTEM.md`
-   - `examples/example_dialogues.md`
-2. create repo-side project structure for `projects/investment/src/`
-3. implement SQLite schema/config/repository baseline
-4. add tests for the first slice
-5. record deployment and validation results
+1. implement a real `market_data_provider` adapter behind the current abstraction
+2. persist rebalance outputs into `investment_suggestions` or `risk_signals`
+3. add news ingestion baseline and related tests
+4. expand OpenClaw acceptance playbooks for refresh -> analysis -> rebalance flow
+5. record phase-2 validation and keep project status current
 
 ## Do Not Forget
 - do not import ZIP runtime memory/inbox content into production blindly

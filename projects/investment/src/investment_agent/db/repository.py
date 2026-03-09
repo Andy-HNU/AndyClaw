@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from investment_agent.models.portfolio import PortfolioState
+from investment_agent.providers.market_data import MarketQuote
 
 
 class InvestmentRepository:
@@ -76,6 +77,82 @@ class InvestmentRepository:
                 """
             ).fetchone()
         return dict(row) if row else None
+
+    def store_price_snapshots(self, quotes: list[MarketQuote]) -> int:
+        with sqlite3.connect(self.db_path) as connection:
+            for quote in quotes:
+                connection.execute(
+                    """
+                    INSERT INTO price_snapshots (
+                        asset_code, source, trade_date, close_price,
+                        high_price, low_price, volume, fetched_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        quote.asset_code,
+                        quote.source,
+                        quote.trade_date,
+                        quote.close_price,
+                        quote.high_price,
+                        quote.low_price,
+                        quote.volume,
+                        quote.fetched_at,
+                    ),
+                )
+            connection.commit()
+        return len(quotes)
+
+    def fetch_latest_price_snapshot(self, asset_code: str) -> dict[str, Any] | None:
+        with sqlite3.connect(self.db_path) as connection:
+            connection.row_factory = sqlite3.Row
+            row = connection.execute(
+                """
+                SELECT asset_code, source, trade_date, close_price, high_price, low_price, volume, fetched_at
+                FROM price_snapshots
+                WHERE asset_code = ?
+                ORDER BY trade_date DESC, fetched_at DESC
+                LIMIT 1
+                """,
+                (asset_code,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def store_analysis_result(self, analysis: dict[str, Any], status: str = "fresh") -> int:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO analysis_results (
+                    analysis_time, total_value, allocation_json, deviation_json, status
+                ) VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    analysis["updated_at"],
+                    analysis["total_value"],
+                    json.dumps(analysis["allocations_pct"], ensure_ascii=False, sort_keys=True),
+                    json.dumps(analysis["deviations_pct"], ensure_ascii=False, sort_keys=True),
+                    status,
+                ),
+            )
+            connection.commit()
+        return int(cursor.lastrowid)
+
+    def fetch_latest_analysis(self) -> dict[str, Any] | None:
+        with sqlite3.connect(self.db_path) as connection:
+            connection.row_factory = sqlite3.Row
+            row = connection.execute(
+                """
+                SELECT analysis_time, total_value, allocation_json, deviation_json, status
+                FROM analysis_results
+                ORDER BY id DESC
+                LIMIT 1
+                """
+            ).fetchone()
+        if row is None:
+            return None
+        result = dict(row)
+        result["allocation_json"] = json.loads(result["allocation_json"])
+        result["deviation_json"] = json.loads(result["deviation_json"])
+        return result
 
     def count_rows(self, table_name: str) -> int:
         with sqlite3.connect(self.db_path) as connection:

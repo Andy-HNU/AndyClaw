@@ -45,6 +45,8 @@ def build_portfolio_analysis(portfolio_state_path: Path, target_allocation_path:
     return {
         "updated_at": state.updated_at,
         "total_value": round(state.total_value, 2),
+        "grouped_values": {key: round(value, 2) for key, value in state.grouped_values().items()},
+        "targets_pct": {key: round(value * 100, 4) for key, value in targets.items()},
         "allocations_pct": allocations,
         "deviations_pct": deviations,
     }

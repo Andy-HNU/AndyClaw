@@ -1,7 +1,7 @@
 # OpenClaw Acceptance Commands
 
-Use these commands when OpenClaw or Codex needs to verify the first investment
-implementation slice.
+Use these commands when OpenClaw or Codex needs to verify the current
+investment implementation slice.
 
 ## SQLite bootstrap
 ```bash
@@ -35,6 +35,28 @@ Expected:
 - `triggered` boolean returned
 - `breaches` list returned
 - priority action returned
+
+## Refresh prices
+```bash
+cd /root/.openclaw/workspace/projects/investment
+PYTHONPATH=src python3 -m investment_agent.main refresh-prices
+```
+
+Expected:
+- `refresh_result.status` is `success`
+- `inserted_rows` matches current asset count
+- `refresh_result.source` returned
+
+## Persist analysis
+```bash
+cd /root/.openclaw/workspace/projects/investment
+PYTHONPATH=src python3 -m investment_agent.main persist-analysis
+```
+
+Expected:
+- `analysis_result_id` returned
+- latest analysis includes allocation/deviation payloads
+- row written into `analysis_results`
 
 ## Test suite
 ```bash

@@ -8,6 +8,11 @@ from pathlib import Path
 from investment_agent.config import discover_paths
 from investment_agent.db.repository import InvestmentRepository
 from investment_agent.models.portfolio import Asset, PortfolioState
+from investment_agent.providers import (
+    FailingMarketDataProvider,
+    JsonFileMarketDataProvider,
+    refresh_market_quotes,
+)
 from investment_agent.services.portfolio_analyzer import (
     build_portfolio_analysis,
     calculate_allocations,
@@ -94,6 +99,64 @@ class InvestmentBootstrapTests(unittest.TestCase):
         result = evaluate_rebalance(analysis["allocations_pct"], targets)
         self.assertIn("triggered", result)
         self.assertIn("breaches", result)
+
+    def test_market_data_primary_provider_writes_price_snapshots(self) -> None:
+        state = load_portfolio_state(self.paths.portfolio_state_path)
+        asset_codes = [asset.theme or asset.name for asset in state.assets]
+        provider = JsonFileMarketDataProvider(
+            "mock-primary", self.paths.market_data_primary_path
+        )
+
+        refresh_result = refresh_market_quotes(asset_codes, provider)
+        quotes = provider.get_latest_quotes(asset_codes)
+
+        self.assertEqual(refresh_result["status"], "success")
+        self.assertFalse(refresh_result["used_backup"])
+        self.repository.initialize()
+        inserted = self.repository.store_price_snapshots(quotes)
+        self.assertEqual(inserted, len(asset_codes))
+        latest = self.repository.fetch_latest_price_snapshot("ai")
+        self.assertIsNotNone(latest)
+        self.assertEqual(latest["source"], "mock-primary")
+
+    def test_market_data_falls_back_to_backup_provider(self) -> None:
+        state = load_portfolio_state(self.paths.portfolio_state_path)
+        asset_codes = [asset.theme or asset.name for asset in state.assets]
+        primary = FailingMarketDataProvider("mock-primary", "simulated upstream timeout")
+        backup = JsonFileMarketDataProvider("mock-backup", self.paths.market_data_backup_path)
+
+        refresh_result = refresh_market_quotes(asset_codes, primary, backup)
+
+        self.assertEqual(refresh_result["status"], "success")
+        self.assertTrue(refresh_result["used_backup"])
+        self.assertEqual(refresh_result["source"], "mock-backup")
+        self.assertEqual(refresh_result["errors"][0]["source"], "mock-primary")
+
+    def test_market_data_reports_failure_if_all_sources_fail(self) -> None:
+        state = load_portfolio_state(self.paths.portfolio_state_path)
+        asset_codes = [asset.theme or asset.name for asset in state.assets]
+        primary = FailingMarketDataProvider("mock-primary", "simulated upstream timeout")
+        backup = FailingMarketDataProvider("mock-backup", "simulated backup timeout")
+
+        refresh_result = refresh_market_quotes(asset_codes, primary, backup)
+
+        self.assertEqual(refresh_result["status"], "failed")
+        self.assertEqual(len(refresh_result["errors"]), 2)
+        self.assertEqual(refresh_result["message"], "all configured market data providers failed")
+
+    def test_analysis_result_can_be_persisted(self) -> None:
+        analysis = build_portfolio_analysis(
+            self.paths.portfolio_state_path, self.paths.target_allocation_path
+        )
+        self.repository.initialize()
+        row_id = self.repository.store_analysis_result(analysis)
+
+        self.assertGreater(row_id, 0)
+        latest = self.repository.fetch_latest_analysis()
+        self.assertIsNotNone(latest)
+        self.assertEqual(latest["analysis_time"], "2026-03")
+        self.assertIn("gold", latest["allocation_json"])
+        self.assertIn("cash", latest["deviation_json"])
 
 
 if __name__ == "__main__":

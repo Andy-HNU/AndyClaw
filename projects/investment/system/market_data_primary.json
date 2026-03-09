@@ -1,0 +1,94 @@
+{
+  "quotes": [
+    {
+      "asset_code": "黄金",
+      "trade_date": "2026-03-10",
+      "close_price": 694.12,
+      "high_price": 696.50,
+      "low_price": 689.30,
+      "volume": 12804,
+      "fetched_at": "2026-03-10T09:00:00+08:00"
+    },
+    {
+      "asset_code": "广发中债7-10年",
+      "trade_date": "2026-03-10",
+      "close_price": 1.0432,
+      "high_price": 1.0441,
+      "low_price": 1.0424,
+      "volume": 3100000,
+      "fetched_at": "2026-03-10T09:00:00+08:00"
+    },
+    {
+      "asset_code": "短债基金",
+      "trade_date": "2026-03-10",
+      "close_price": 1.0155,
+      "high_price": 1.0159,
+      "low_price": 1.0151,
+      "volume": 1800000,
+      "fetched_at": "2026-03-10T09:00:00+08:00"
+    },
+    {
+      "asset_code": "power_grid",
+      "trade_date": "2026-03-10",
+      "close_price": 1.127,
+      "high_price": 1.133,
+      "low_price": 1.119,
+      "volume": 1502300,
+      "fetched_at": "2026-03-10T09:00:00+08:00"
+    },
+    {
+      "asset_code": "advanced_manufacturing",
+      "trade_date": "2026-03-10",
+      "close_price": 0.996,
+      "high_price": 1.002,
+      "low_price": 0.991,
+      "volume": 1239000,
+      "fetched_at": "2026-03-10T09:00:00+08:00"
+    },
+    {
+      "asset_code": "metals",
+      "trade_date": "2026-03-10",
+      "close_price": 1.284,
+      "high_price": 1.291,
+      "low_price": 1.277,
+      "volume": 980200,
+      "fetched_at": "2026-03-10T09:00:00+08:00"
+    },
+    {
+      "asset_code": "broad_index",
+      "trade_date": "2026-03-10",
+      "close_price": 0.843,
+      "high_price": 0.849,
+      "low_price": 0.837,
+      "volume": 2230040,
+      "fetched_at": "2026-03-10T09:00:00+08:00"
+    },
+    {
+      "asset_code": "ai",
+      "trade_date": "2026-03-10",
+      "close_price": 1.351,
+      "high_price": 1.364,
+      "low_price": 1.339,
+      "volume": 2014500,
+      "fetched_at": "2026-03-10T09:00:00+08:00"
+    },
+    {
+      "asset_code": "robotics",
+      "trade_date": "2026-03-10",
+      "close_price": 1.187,
+      "high_price": 1.193,
+      "low_price": 1.180,
+      "volume": 1734400,
+      "fetched_at": "2026-03-10T09:00:00+08:00"
+    },
+    {
+      "asset_code": "现金",
+      "trade_date": "2026-03-10",
+      "close_price": 1.0,
+      "high_price": 1.0,
+      "low_price": 1.0,
+      "volume": 12000,
+      "fetched_at": "2026-03-10T09:00:00+08:00"
+    }
+  ]
+}
