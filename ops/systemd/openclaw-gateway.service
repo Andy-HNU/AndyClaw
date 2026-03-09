@@ -1,0 +1,18 @@
+[Unit]
+Description=OpenClaw Gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root
+Environment=OPENCLAW_NO_RESPAWN=1
+Environment=NODE_COMPILE_CACHE=/var/tmp/openclaw-compile-cache
+LoadCredential=gog_keyring_password:/etc/openclaw/credentials/gog-keyring-password
+ExecStart=/bin/bash -lc 'export GOG_KEYRING_PASSWORD="$(cat "$${CREDENTIALS_DIRECTORY}/gog_keyring_password")"; exec openclaw gateway run --verbose'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

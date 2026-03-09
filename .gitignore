@@ -1,0 +1,26 @@
+# Secrets and credentials
+usrFile/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+credentials.json
+
+# OpenClaw runtime state
+.openclaw/
+memory/
+inbox/
+
+# Local editor and OS files
+.DS_Store
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
