@@ -1,4 +1,4 @@
-# Investment Phase 1-2 Validation
+# Investment Phase 1-3 Validation
 
 ## Scope
 Current runnable slice for the investment project:
@@ -10,6 +10,8 @@ Current runnable slice for the investment project:
 - analysis result persistence
 - market data provider abstraction with primary/backup fallback
 - price snapshot persistence
+- provider capability detection
+- rebalance review persistence into suggestions and risk signals
 - extended CLI
 - extended tests
 
@@ -18,8 +20,10 @@ Current runnable slice for the investment project:
 - `projects/investment/src/investment_agent/db/repository.py`
 - `projects/investment/src/investment_agent/services/portfolio_analyzer.py`
 - `projects/investment/src/investment_agent/providers/market_data.py`
+- `projects/investment/src/investment_agent/providers/factory.py`
 - `projects/investment/src/investment_agent/models/portfolio.py`
 - `projects/investment/src/investment_agent/main.py`
+- `projects/investment/src/investment_agent/services/rebalance_recorder.py`
 - `projects/investment/tests_python/test_bootstrap.py`
 
 ## Commands Run
@@ -70,6 +74,17 @@ Result:
 - 10 standardized price snapshots inserted into SQLite
 - provider fallback path is covered by tests
 
+### Provider capabilities
+```bash
+cd /root/.openclaw/workspace/projects/investment
+PYTHONPATH=src python3 -m investment_agent.main provider-capabilities
+```
+
+Result:
+- current environment reports `akshare` and `efinance` as unavailable
+- local mock primary/backup providers remain enabled
+- runtime now exposes why real providers are not yet active
+
 ### Persist analysis
 ```bash
 cd /root/.openclaw/workspace/projects/investment
@@ -80,6 +95,17 @@ Result:
 - current allocation/deviation snapshot persisted into `analysis_results`
 - latest analysis can be read back from SQLite
 
+### Persist rebalance review
+```bash
+cd /root/.openclaw/workspace/projects/investment
+PYTHONPATH=src python3 -m investment_agent.main persist-rebalance
+```
+
+Result:
+- current rebalance review persisted into `investment_suggestions`
+- each breach emitted an `allocation_drift` risk signal
+- latest suggestion and open signals can be read back from SQLite
+
 ### Tests
 ```bash
 cd /root/.openclaw/workspace/projects/investment
@@ -87,7 +113,7 @@ PYTHONPATH=src python3 -m unittest discover -s tests_python -v
 ```
 
 Result:
-- 9 tests passed
+- 11 tests passed
 
 ## Notes
 - The spec-style ratio test uses synthetic data from the test doc, not the
@@ -97,9 +123,12 @@ Result:
 - The current provider implementation is intentionally local and deterministic:
   it validates the abstraction, fallback path, and storage flow before any
   external market-data adapter is added.
+- The current environment does not have `akshare` or `efinance` installed, so
+  capability detection reports them as unavailable instead of silently failing
+  at runtime.
 
 ## Next Rollout Target
 - implement a real adapter behind the `market_data_provider` abstraction
-- connect rebalance output to persisted suggestion/signal records
 - add news collection baseline
 - prepare a wider OpenClaw runtime acceptance and replay flow
+- add a combined workflow entry point that chains refresh, analysis, and rebalance persistence

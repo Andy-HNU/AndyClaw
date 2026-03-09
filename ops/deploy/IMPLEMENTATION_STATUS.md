@@ -24,17 +24,19 @@ tester, and acceptance layer.
 - repo is initialized and pushed to GitHub
 - first runnable investment slice is merged into `projects/investment`
 - market-data mock provider baseline, fallback logic, and SQLite persistence are now implemented
+- provider capability detection is now implemented for `akshare` / `efinance`
+- rebalance reviews now persist into `investment_suggestions` and `risk_signals`
 
 ## In Progress
-- extend the investment codebase beyond bootstrap into reusable provider/service layers
+- move from mock-only provider execution toward a real external adapter
 - keep validation docs and OpenClaw acceptance commands aligned with the real CLI surface
 
 ## Next Steps
-1. implement a real `market_data_provider` adapter behind the current abstraction
-2. persist rebalance outputs into `investment_suggestions` or `risk_signals`
-3. add news ingestion baseline and related tests
-4. expand OpenClaw acceptance playbooks for refresh -> analysis -> rebalance flow
-5. record phase-2 validation and keep project status current
+1. implement the first real external `market_data_provider` adapter behind the current abstraction
+2. add news ingestion baseline and related tests
+3. expand OpenClaw acceptance playbooks for refresh -> analysis -> rebalance flow
+4. add a combined workflow entry point for refresh + analysis + rebalance persistence
+5. record phase-3 validation and keep project status current
 
 ## Do Not Forget
 - do not import ZIP runtime memory/inbox content into production blindly

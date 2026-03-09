@@ -154,6 +154,95 @@ class InvestmentRepository:
         result["deviation_json"] = json.loads(result["deviation_json"])
         return result
 
+    def store_risk_signal(
+        self,
+        signal_time: str,
+        signal_type: str,
+        severity: str,
+        message: str,
+        evidence: dict[str, Any],
+        status: str = "open",
+    ) -> int:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO risk_signals (
+                    signal_time, signal_type, severity, message, evidence_json, status
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    signal_time,
+                    signal_type,
+                    severity,
+                    message,
+                    json.dumps(evidence, ensure_ascii=False, sort_keys=True),
+                    status,
+                ),
+            )
+            connection.commit()
+        return int(cursor.lastrowid)
+
+    def store_investment_suggestion(
+        self,
+        suggestion_time: str,
+        suggestion_type: str,
+        content: dict[str, Any],
+        rationale: str,
+        status: str = "draft",
+    ) -> int:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO investment_suggestions (
+                    suggestion_time, suggestion_type, content_json, rationale, status
+                ) VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    suggestion_time,
+                    suggestion_type,
+                    json.dumps(content, ensure_ascii=False, sort_keys=True),
+                    rationale,
+                    status,
+                ),
+            )
+            connection.commit()
+        return int(cursor.lastrowid)
+
+    def fetch_latest_investment_suggestion(self) -> dict[str, Any] | None:
+        with sqlite3.connect(self.db_path) as connection:
+            connection.row_factory = sqlite3.Row
+            row = connection.execute(
+                """
+                SELECT suggestion_time, suggestion_type, content_json, rationale, status
+                FROM investment_suggestions
+                ORDER BY id DESC
+                LIMIT 1
+                """
+            ).fetchone()
+        if row is None:
+            return None
+        result = dict(row)
+        result["content_json"] = json.loads(result["content_json"])
+        return result
+
+    def fetch_open_risk_signals(self) -> list[dict[str, Any]]:
+        with sqlite3.connect(self.db_path) as connection:
+            connection.row_factory = sqlite3.Row
+            rows = connection.execute(
+                """
+                SELECT signal_time, signal_type, severity, message, evidence_json, status
+                FROM risk_signals
+                WHERE status = 'open'
+                ORDER BY id ASC
+                """
+            ).fetchall()
+        results: list[dict[str, Any]] = []
+        for row in rows:
+            item = dict(row)
+            item["evidence_json"] = json.loads(item["evidence_json"])
+            results.append(item)
+        return results
+
     def count_rows(self, table_name: str) -> int:
         with sqlite3.connect(self.db_path) as connection:
             row = connection.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()

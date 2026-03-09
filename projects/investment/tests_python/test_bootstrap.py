@@ -11,8 +11,10 @@ from investment_agent.models.portfolio import Asset, PortfolioState
 from investment_agent.providers import (
     FailingMarketDataProvider,
     JsonFileMarketDataProvider,
+    build_provider_capabilities,
     refresh_market_quotes,
 )
+from investment_agent.services.rebalance_recorder import persist_rebalance_review
 from investment_agent.services.portfolio_analyzer import (
     build_portfolio_analysis,
     calculate_allocations,
@@ -157,6 +159,35 @@ class InvestmentBootstrapTests(unittest.TestCase):
         self.assertEqual(latest["analysis_time"], "2026-03")
         self.assertIn("gold", latest["allocation_json"])
         self.assertIn("cash", latest["deviation_json"])
+
+    def test_rebalance_review_can_be_persisted(self) -> None:
+        analysis = build_portfolio_analysis(
+            self.paths.portfolio_state_path, self.paths.target_allocation_path
+        )
+        targets = load_target_allocation(self.paths.target_allocation_path)
+        rebalance_result = evaluate_rebalance(analysis["allocations_pct"], targets)
+        self.repository.initialize()
+
+        persisted = persist_rebalance_review(self.repository, analysis, rebalance_result)
+
+        self.assertGreater(persisted["suggestion_id"], 0)
+        self.assertEqual(len(persisted["risk_signal_ids"]), len(rebalance_result["breaches"]))
+        latest_suggestion = self.repository.fetch_latest_investment_suggestion()
+        self.assertIsNotNone(latest_suggestion)
+        self.assertEqual(latest_suggestion["suggestion_type"], "rebalance_review")
+        self.assertEqual(latest_suggestion["status"], "ready")
+        signals = self.repository.fetch_open_risk_signals()
+        self.assertGreaterEqual(len(signals), 1)
+        self.assertEqual(signals[0]["signal_type"], "allocation_drift")
+
+    def test_provider_capabilities_reflect_current_environment(self) -> None:
+        capabilities = build_provider_capabilities(self.paths)
+        by_name = {item.name: item for item in capabilities}
+
+        self.assertFalse(by_name["akshare-etf"].enabled)
+        self.assertFalse(by_name["efinance-fund"].enabled)
+        self.assertTrue(by_name["mock-primary"].enabled)
+        self.assertTrue(by_name["mock-backup"].enabled)
 
 
 if __name__ == "__main__":

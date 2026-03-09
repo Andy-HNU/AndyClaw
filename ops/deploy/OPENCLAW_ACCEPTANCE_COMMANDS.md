@@ -47,6 +47,17 @@ Expected:
 - `inserted_rows` matches current asset count
 - `refresh_result.source` returned
 
+## Provider capabilities
+```bash
+cd /root/.openclaw/workspace/projects/investment
+PYTHONPATH=src python3 -m investment_agent.main provider-capabilities
+```
+
+Expected:
+- provider list returned
+- unavailable real providers explain why they are disabled
+- local mock providers remain enabled
+
 ## Persist analysis
 ```bash
 cd /root/.openclaw/workspace/projects/investment
@@ -57,6 +68,17 @@ Expected:
 - `analysis_result_id` returned
 - latest analysis includes allocation/deviation payloads
 - row written into `analysis_results`
+
+## Persist rebalance review
+```bash
+cd /root/.openclaw/workspace/projects/investment
+PYTHONPATH=src python3 -m investment_agent.main persist-rebalance
+```
+
+Expected:
+- persisted suggestion returned
+- open `allocation_drift` signals returned
+- risk signal count matches rebalance breach count
 
 ## Test suite
 ```bash

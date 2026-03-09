@@ -107,7 +107,8 @@ investment/
 - 本次新增：项目结构建议、SQLite 方案、数据源策略、GitHub 检索指导、完整工作流
 - 第一阶段已完成：可运行的 SQLite 初始化、首份资产快照入库、当前仓位占比分析 CLI、再平衡触发检查 CLI、`unittest` 基线验证
 - 第二阶段基线已完成：`market_data_provider` 抽象、本地主/备源退化、价格快照入库、分析结果持久化
-- 未完成：真实行情/新闻数据抓取、自动报表、工作流调度、OpenClaw 运行期验收闭环
+- 第三阶段基线已完成：provider 能力探测、再平衡结果持久化到 `investment_suggestions` / `risk_signals`
+- 未完成：真实行情/新闻数据抓取、新闻入库、自动报表、工作流调度、OpenClaw 运行期验收闭环
 
 ## 目录地图
 - `system/`：投资系统文档、资产数据、目标配置、数据源策略
@@ -138,8 +139,8 @@ investment/
 - `acceptance/PHASE_CHECKLIST.md`
 
 ## 下一步
-1. 在当前抽象后接入真实 `market_data_provider` 实现
-2. 将再平衡结果写入 `investment_suggestions` 或 `risk_signals`
-3. 新增新闻抓取与入库基线
-4. 将当前 `unittest` 基线扩展到真实 provider 适配与失败退化测试
+1. 在当前抽象后接入第一个真实 `market_data_provider` 实现
+2. 新增新闻抓取与入库基线
+3. 增加 `refresh -> analysis -> rebalance` 的组合工作流入口
+4. 将当前 `unittest` 基线扩展到真实 provider 适配与新闻入库测试
 5. 准备 OpenClaw 调用用的验收 playbook 与阶段回测

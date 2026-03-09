@@ -5,12 +5,18 @@ import json
 
 from investment_agent.config import discover_paths
 from investment_agent.db.repository import InvestmentRepository
-from investment_agent.providers import JsonFileMarketDataProvider, MarketQuote, refresh_market_quotes
+from investment_agent.providers import (
+    MarketQuote,
+    build_default_market_data_chain,
+    build_provider_capabilities,
+    refresh_market_quotes,
+)
 from investment_agent.services.portfolio_analyzer import (
     build_portfolio_analysis,
     load_target_allocation,
     load_portfolio_state,
 )
+from investment_agent.services.rebalance_recorder import persist_rebalance_review
 from investment_agent.services.rebalancing_engine import evaluate_rebalance
 
 
@@ -23,6 +29,8 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("rebalance-check", help="Evaluate rebalance trigger")
     subparsers.add_parser("persist-analysis", help="Persist the current portfolio analysis")
     subparsers.add_parser("refresh-prices", help="Refresh latest price snapshots with fallback")
+    subparsers.add_parser("persist-rebalance", help="Persist the current rebalance review")
+    subparsers.add_parser("provider-capabilities", help="Show available market-data adapters")
     return parser
 
 
@@ -90,12 +98,14 @@ def cmd_refresh_prices() -> int:
     repository.initialize()
     portfolio_state = load_portfolio_state(paths.portfolio_state_path)
     asset_codes = [asset.theme or asset.name for asset in portfolio_state.assets]
-    primary = JsonFileMarketDataProvider("mock-primary", paths.market_data_primary_path)
-    backup = JsonFileMarketDataProvider("mock-backup", paths.market_data_backup_path)
+    primary, backup = build_default_market_data_chain(paths)
     refresh_result = refresh_market_quotes(asset_codes, primary, backup)
     inserted = 0
     if refresh_result["status"] == "success":
-        quotes = [MarketQuote.from_dict(item, default_source=str(refresh_result["source"])) for item in refresh_result["quotes"]]
+        quotes = [
+            MarketQuote.from_dict(item, default_source=str(refresh_result["source"]))
+            for item in refresh_result["quotes"]
+        ]
         inserted = repository.store_price_snapshots(quotes)
     print(
         json.dumps(
@@ -109,6 +119,35 @@ def cmd_refresh_prices() -> int:
         )
     )
     return 0 if refresh_result["status"] == "success" else 1
+
+
+def cmd_persist_rebalance() -> int:
+    paths = discover_paths()
+    repository = InvestmentRepository(paths.db_path, paths.schema_path)
+    repository.initialize()
+    analysis = build_portfolio_analysis(paths.portfolio_state_path, paths.target_allocation_path)
+    targets = load_target_allocation(paths.target_allocation_path)
+    rebalance_result = evaluate_rebalance(analysis["allocations_pct"], targets)
+    persisted = persist_rebalance_review(repository, analysis, rebalance_result)
+    print(
+        json.dumps(
+            {
+                "db_path": str(paths.db_path),
+                "rebalance_result": rebalance_result,
+                "persisted": persisted,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0
+
+
+def cmd_provider_capabilities() -> int:
+    paths = discover_paths()
+    capabilities = [item.to_dict() for item in build_provider_capabilities(paths)]
+    print(json.dumps({"providers": capabilities}, ensure_ascii=False, indent=2))
+    return 0
 
 
 def main() -> int:
@@ -125,6 +164,10 @@ def main() -> int:
         return cmd_persist_analysis()
     if args.command == "refresh-prices":
         return cmd_refresh_prices()
+    if args.command == "persist-rebalance":
+        return cmd_persist_rebalance()
+    if args.command == "provider-capabilities":
+        return cmd_provider_capabilities()
 
     parser.error(f"Unsupported command: {args.command}")
     return 2
