@@ -1,0 +1,62 @@
+{
+  "updated_at": "2026-03",
+  "assets": [
+    {
+      "name": "黄金",
+      "category": "gold",
+      "value": 13902.91,
+      "profit": 217.06
+    },
+    {
+      "name": "广发中债7-10年",
+      "category": "bond",
+      "value": 7033.52
+    },
+    {
+      "name": "短债基金",
+      "category": "bond",
+      "value": 5014.01
+    },
+    {
+      "name": "电网指数",
+      "category": "stock",
+      "value": 2310.36,
+      "theme": "power_grid"
+    },
+    {
+      "name": "高端装备ETF",
+      "category": "stock",
+      "value": 1992.86,
+      "theme": "advanced_manufacturing"
+    },
+    {
+      "name": "有色金属ETF",
+      "category": "stock",
+      "value": 1464.95,
+      "theme": "metals"
+    },
+    {
+      "name": "科创50",
+      "category": "stock",
+      "value": 3381.86,
+      "theme": "broad_index"
+    },
+    {
+      "name": "人工智能",
+      "category": "stock",
+      "value": 2278.68,
+      "theme": "ai"
+    },
+    {
+      "name": "机器人ETF",
+      "category": "stock",
+      "value": 2274.56,
+      "theme": "robotics"
+    },
+    {
+      "name": "现金",
+      "category": "cash",
+      "value": 12000
+    }
+  ]
+}

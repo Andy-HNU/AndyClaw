@@ -6,11 +6,27 @@ usrFile/
 *.p12
 *.pfx
 credentials.json
+*.env
+.env
+.env.*
+secrets/
+credentials/
+*.token
+*.secret
+*.secrets
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
 
 # OpenClaw runtime state
 .openclaw/
 memory/
 inbox/
+logs/
+tmp/
+temp/
+staging/
 
 # Local editor and OS files
 .DS_Store
@@ -20,7 +36,19 @@ inbox/
 # Python
 __pycache__/
 *.pyc
+*.db
+*.sqlite
+*.sqlite3
+.pytest_cache/
+.venv/
+venv/
 
 # Node
 node_modules/
+npm-debug.log*
 
+# Archives and local import bundles
+*.zip
+*.tar
+*.tar.gz
+*.tgz
