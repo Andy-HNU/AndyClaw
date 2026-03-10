@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from investment_agent.config import ProjectPaths
 from investment_agent.providers.market_data import JsonFileMarketDataProvider, MarketDataProvider
+from investment_agent.providers.news_data import JsonFileNewsDataProvider, NewsDataProvider
 
 
 @dataclass(frozen=True)
@@ -86,4 +87,11 @@ def build_default_market_data_chain(paths: ProjectPaths) -> list[MarketDataProvi
     return [
         JsonFileMarketDataProvider("mock-primary", paths.market_data_primary_path),
         JsonFileMarketDataProvider("mock-backup", paths.market_data_backup_path),
+    ]
+
+
+def build_default_news_data_chain(paths: ProjectPaths) -> list[NewsDataProvider]:
+    return [
+        JsonFileNewsDataProvider("mock-news-primary", paths.news_data_primary_path),
+        JsonFileNewsDataProvider("mock-news-backup", paths.news_data_backup_path),
     ]

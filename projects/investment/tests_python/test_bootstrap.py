@@ -10,10 +10,14 @@ from investment_agent.db.repository import InvestmentRepository
 from investment_agent.models.portfolio import Asset, PortfolioState
 from investment_agent.providers import (
     FailingMarketDataProvider,
+    FailingNewsDataProvider,
     JsonFileMarketDataProvider,
+    JsonFileNewsDataProvider,
     build_provider_capabilities,
     refresh_market_quotes,
+    refresh_news_items,
 )
+from investment_agent.services.monthly_planner import build_monthly_plan
 from investment_agent.services.rebalance_recorder import persist_rebalance_review
 from investment_agent.services.portfolio_analyzer import (
     build_portfolio_analysis,
@@ -22,6 +26,19 @@ from investment_agent.services.portfolio_analyzer import (
     load_portfolio_state,
 )
 from investment_agent.services.rebalancing_engine import evaluate_rebalance
+from investment_agent.services.report_generator import generate_monthly_report
+from investment_agent.services.signal_engine import (
+    PriceBar,
+    assess_asset_signals,
+    build_asset_signal_review,
+    build_position_change_summary,
+    compute_ad_line,
+    compute_cmf,
+    compute_obv_line,
+    compute_volume_ratio,
+    load_asset_research,
+)
+from investment_agent.workflows.monthly_review import run_monthly_review
 
 
 class InvestmentBootstrapTests(unittest.TestCase):
@@ -46,6 +63,9 @@ class InvestmentBootstrapTests(unittest.TestCase):
         latest = self.repository.fetch_latest_snapshot()
         self.assertIsNotNone(latest)
         self.assertEqual(latest["snapshot_time"], "2026-03")
+        assets = self.repository.fetch_portfolio_assets()
+        self.assertGreaterEqual(len(assets), 1)
+        self.assertIsNotNone(assets[0]["quantity"])
 
         with sqlite3.connect(self.db_path) as connection:
             row = connection.execute(
@@ -78,6 +98,14 @@ class InvestmentBootstrapTests(unittest.TestCase):
         allocations = analysis["allocations_pct"]
         self.assertSetEqual(set(allocations), {"gold", "bond", "stock", "cash"})
         self.assertAlmostEqual(sum(allocations.values()), 100.0, places=2)
+
+    def test_workspace_portfolio_state_includes_shares_and_average_cost(self) -> None:
+        state = load_portfolio_state(self.paths.portfolio_state_path)
+        by_code = {asset.theme or asset.name: asset for asset in state.assets}
+        self.assertAlmostEqual(by_code["power_grid"].shares, 2050.0089, places=4)
+        self.assertAlmostEqual(by_code["power_grid"].average_cost, 1.03, places=2)
+        self.assertEqual(by_code["power_grid"].asset_type, "etf")
+        self.assertAlmostEqual(by_code["黄金"].shares, 20.0295, places=4)
 
     def test_rebalance_trigger_matches_rule_doc(self) -> None:
         result = evaluate_rebalance(
@@ -179,6 +207,157 @@ class InvestmentBootstrapTests(unittest.TestCase):
         signals = self.repository.fetch_open_risk_signals()
         self.assertGreaterEqual(len(signals), 1)
         self.assertEqual(signals[0]["signal_type"], "allocation_drift")
+
+    def test_news_primary_provider_writes_news_items(self) -> None:
+        provider = JsonFileNewsDataProvider("mock-news-primary", self.paths.news_data_primary_path)
+
+        refresh_result = refresh_news_items(provider, limit=5)
+        items = provider.get_latest_news(limit=5)
+
+        self.assertEqual(refresh_result["status"], "success")
+        self.repository.initialize()
+        inserted = self.repository.store_news_items(items)
+        self.assertEqual(inserted, 5)
+        latest_news = self.repository.fetch_recent_news(limit=2)
+        self.assertEqual(len(latest_news), 2)
+        self.assertEqual(latest_news[0]["topic"], "政策")
+
+    def test_news_falls_back_to_backup_provider(self) -> None:
+        primary = FailingNewsDataProvider("mock-news-primary", "simulated upstream timeout")
+        backup = JsonFileNewsDataProvider("mock-news-backup", self.paths.news_data_backup_path)
+
+        refresh_result = refresh_news_items(primary, backup, limit=2)
+
+        self.assertEqual(refresh_result["status"], "success")
+        self.assertTrue(refresh_result["used_backup"])
+        self.assertEqual(refresh_result["source"], "mock-news-backup")
+
+    def test_position_change_summary_splits_price_and_flow_effects(self) -> None:
+        current_state = load_portfolio_state(self.paths.portfolio_state_path)
+        previous_state = load_portfolio_state(self.paths.previous_portfolio_state_path)
+
+        summary = build_position_change_summary(current_state, previous_state)
+        by_code = {item["asset_code"]: item for item in summary}
+
+        self.assertAlmostEqual(by_code["power_grid"]["amount_change"], 164.96, places=2)
+        self.assertAlmostEqual(by_code["power_grid"]["share_change"], 100.0, places=4)
+        self.assertAlmostEqual(by_code["power_grid"]["flow_effect"], 112.7, places=2)
+        self.assertAlmostEqual(by_code["现金"]["share_change"], -1800.0, places=4)
+        self.assertAlmostEqual(by_code["现金"]["amount_change"], -1800.0, places=2)
+
+    def test_signal_formula_helpers_match_expected_sequences(self) -> None:
+        bars = [
+            PriceBar(close=10.8, high=11, low=9, volume=100),
+            PriceBar(close=11.4, high=11.5, low=10.5, volume=120),
+            PriceBar(close=10.2, high=11, low=10, volume=90),
+            PriceBar(close=12.3, high=12.5, low=11.5, volume=160),
+        ]
+
+        self.assertEqual(compute_ad_line(bars), [80.0, 176.0, 122.0, 218.0])
+        self.assertEqual(compute_obv_line(bars), [0.0, 120.0, 30.0, 190.0])
+        self.assertAlmostEqual(compute_cmf(bars, window=4), 0.4638, places=4)
+        self.assertAlmostEqual(compute_volume_ratio(bars, window=3), 1.5484, places=4)
+
+    def test_asset_signal_review_emits_distribution_and_valuation_signals(self) -> None:
+        state = load_portfolio_state(self.paths.portfolio_state_path)
+        previous_state = load_portfolio_state(self.paths.previous_portfolio_state_path)
+        research = load_asset_research(self.paths.asset_research_path)
+
+        review = build_asset_signal_review(state, previous_state, research)
+        signal_names = {item["signal_name"] for item in review["signals"]}
+
+        self.assertIn("suspected_distribution", signal_names)
+        self.assertIn("valuation_premium_warning", signal_names)
+        self.assertIn("manager_style_drift", signal_names)
+        self.assertGreaterEqual(len(review["research_highlights"]), 3)
+
+    def test_assess_asset_signals_handles_asset_research_fixture(self) -> None:
+        state = load_portfolio_state(self.paths.portfolio_state_path)
+        asset = next(item for item in state.assets if (item.theme or item.name) == "ai")
+        research = load_asset_research(self.paths.asset_research_path)["ai"]
+
+        signals = assess_asset_signals(asset, research)
+        by_name = {item["signal_name"]: item for item in signals}
+
+        self.assertEqual(by_name["suspected_distribution"]["severity"], "high")
+        self.assertEqual(by_name["valuation_premium_warning"]["severity"], "high")
+
+    def test_monthly_plan_prioritizes_underweight_assets(self) -> None:
+        analysis = build_portfolio_analysis(
+            self.paths.portfolio_state_path, self.paths.target_allocation_path
+        )
+        targets = load_target_allocation(self.paths.target_allocation_path)
+
+        plan = build_monthly_plan(analysis, targets, monthly_budget=12000)
+
+        self.assertAlmostEqual(analysis["total_value"], 51653.71, places=2)
+        self.assertAlmostEqual(analysis["allocations_pct"]["stock"], 26.5291, places=4)
+        self.assertAlmostEqual(analysis["allocations_pct"]["bond"], 23.3236, places=4)
+        self.assertAlmostEqual(analysis["allocations_pct"]["gold"], 26.9156, places=4)
+        self.assertAlmostEqual(analysis["allocations_pct"]["cash"], 23.2316, places=4)
+        self.assertAlmostEqual(targets["stock"], 0.5, places=4)
+        self.assertAlmostEqual(targets["bond"], 0.25, places=4)
+        self.assertAlmostEqual(targets["gold"], 0.15, places=4)
+        self.assertAlmostEqual(targets["cash"], 0.1, places=4)
+        self.assertEqual(plan["status"], "needs_repair")
+        self.assertEqual(plan["underweight_categories"], ["stock", "bond"])
+        self.assertAlmostEqual(
+            sum(item["recommended_amount"] for item in plan["recommendations"]),
+            12000.0,
+            places=2,
+        )
+        self.assertEqual(plan["recommendations"][0]["category"], "stock")
+        self.assertAlmostEqual(plan["recommendations"][0]["gap_value"], 12123.59, places=2)
+        self.assertAlmostEqual(plan["recommendations"][0]["recommended_amount"], 11200.04, places=2)
+        self.assertEqual(plan["recommendations"][1]["category"], "bond")
+        self.assertAlmostEqual(plan["recommendations"][1]["gap_value"], 865.92, places=2)
+        self.assertAlmostEqual(plan["recommendations"][1]["recommended_amount"], 799.96, places=2)
+        self.assertEqual(plan["remaining_budget"], 0.0)
+
+    def test_monthly_report_includes_position_and_research_sections(self) -> None:
+        analysis = build_portfolio_analysis(
+            self.paths.portfolio_state_path, self.paths.target_allocation_path
+        )
+        current_state = load_portfolio_state(self.paths.portfolio_state_path)
+        previous_state = load_portfolio_state(self.paths.previous_portfolio_state_path)
+        research = load_asset_research(self.paths.asset_research_path)
+        review = build_asset_signal_review(current_state, previous_state, research)
+        targets = load_target_allocation(self.paths.target_allocation_path)
+        report = generate_monthly_report(
+            analysis=analysis,
+            rebalance_result=evaluate_rebalance(analysis["allocations_pct"], targets),
+            monthly_plan=build_monthly_plan(analysis, targets, monthly_budget=12000),
+            risk_signals=review["signals"],
+            news_items=[],
+            position_changes=review["positions"],
+            research_highlights=review["research_highlights"],
+        )
+
+        self.assertIn("position_changes", report["content_json"])
+        self.assertIn("research_highlights", report["content_json"])
+        self.assertIn("细分持仓变化", report["content_md"])
+        self.assertIn("资产研究摘要", report["content_md"])
+
+    def test_monthly_review_workflow_persists_report_and_supporting_data(self) -> None:
+        self.repository.initialize()
+
+        result = run_monthly_review(self.paths, self.repository, news_limit=5, monthly_budget=12000)
+
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(result["price_refresh"]["status"], "success")
+        self.assertEqual(result["news_refresh"]["status"], "success")
+        self.assertGreater(self.repository.count_rows("price_snapshots"), 0)
+        self.assertGreater(self.repository.count_rows("news_items"), 0)
+        self.assertGreater(self.repository.count_rows("reports"), 0)
+        self.assertGreaterEqual(len(result["signal_review"]["signals"]), 3)
+        latest_report = self.repository.fetch_latest_report("monthly")
+        self.assertIsNotNone(latest_report)
+        self.assertEqual(latest_report["report_type"], "monthly")
+        self.assertIn("news_observations", latest_report["content_json"])
+        self.assertIn("monthly_plan", latest_report["content_json"])
+        self.assertIn("position_changes", latest_report["content_json"])
+        self.assertIn("research_highlights", latest_report["content_json"])
+        self.assertGreaterEqual(len(self.repository.fetch_open_risk_signals()), 4)
 
     def test_provider_capabilities_reflect_current_environment(self) -> None:
         capabilities = build_provider_capabilities(self.paths)

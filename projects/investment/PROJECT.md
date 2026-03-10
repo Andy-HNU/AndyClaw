@@ -108,7 +108,10 @@ investment/
 - 第一阶段已完成：可运行的 SQLite 初始化、首份资产快照入库、当前仓位占比分析 CLI、再平衡触发检查 CLI、`unittest` 基线验证
 - 第二阶段基线已完成：`market_data_provider` 抽象、本地主/备源退化、价格快照入库、分析结果持久化
 - 第三阶段基线已完成：provider 能力探测、再平衡结果持久化到 `investment_suggestions` / `risk_signals`
-- 未完成：真实行情/新闻数据抓取、新闻入库、自动报表、工作流调度、OpenClaw 运行期验收闭环
+- 第四阶段基线已完成：`monthly_planner` 已可根据当前偏离优先把新增资金分配给低配资产
+- 第五阶段基线已完成：本地新闻主/备源、月报生成、`monthly-review` 工作流与报告入库已跑通
+- V2 第一批基线已完成：份额与金额变化跟踪、资产研究样本、资产级信号评估、`signal-review` CLI、报告与测试集成
+- 未完成：真实行情/新闻数据抓取、趋势判断驱动的配置调整、自动调度、OpenClaw 运行期验收闭环
 
 ## 目录地图
 - `system/`：投资系统文档、资产数据、目标配置、数据源策略
@@ -144,3 +147,4 @@ investment/
 3. 增加 `refresh -> analysis -> rebalance` 的组合工作流入口
 4. 将当前 `unittest` 基线扩展到真实 provider 适配与新闻入库测试
 5. 准备 OpenClaw 调用用的验收 playbook 与阶段回测
+6. 当前阶段稳定后，再进入 `agent/V2_BACKLOG.md` 中记录的配置调整方向研究

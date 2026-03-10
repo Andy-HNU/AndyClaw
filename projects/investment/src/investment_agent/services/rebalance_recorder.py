@@ -45,6 +45,7 @@ def persist_rebalance_review(
     return {
         "suggestion_id": suggestion_id,
         "risk_signal_ids": risk_signal_ids,
+        "risk_signals": repository.fetch_risk_signals_by_ids(risk_signal_ids),
         "latest_suggestion": repository.fetch_latest_investment_suggestion(),
         "open_risk_signals": repository.fetch_open_risk_signals(),
     }

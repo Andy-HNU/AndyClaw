@@ -7,6 +7,7 @@ from typing import Any
 
 from investment_agent.models.portfolio import PortfolioState
 from investment_agent.providers.market_data import MarketQuote
+from investment_agent.providers.news_data import NewsItem
 
 
 class InvestmentRepository:
@@ -38,9 +39,13 @@ class InvestmentRepository:
                         asset.name,
                         asset.category,
                         asset.theme,
-                        None,
+                        asset.shares,
                         asset.value,
-                        asset.value - asset.profit if asset.profit is not None else None,
+                        (
+                            round(asset.average_cost * asset.shares, 2)
+                            if asset.average_cost is not None and asset.shares is not None
+                            else (asset.value - asset.profit if asset.profit is not None else None)
+                        ),
                         "CNY",
                         state.updated_at,
                     ),
@@ -77,6 +82,18 @@ class InvestmentRepository:
                 """
             ).fetchone()
         return dict(row) if row else None
+
+    def fetch_portfolio_assets(self) -> list[dict[str, Any]]:
+        with sqlite3.connect(self.db_path) as connection:
+            connection.row_factory = sqlite3.Row
+            rows = connection.execute(
+                """
+                SELECT asset_code, asset_name, category, subcategory, quantity, market_value, cost_basis, currency, updated_at
+                FROM portfolio_assets
+                ORDER BY id ASC
+                """
+            ).fetchall()
+        return [dict(row) for row in rows]
 
     def store_price_snapshots(self, quotes: list[MarketQuote]) -> int:
         with sqlite3.connect(self.db_path) as connection:
@@ -116,6 +133,43 @@ class InvestmentRepository:
                 (asset_code,),
             ).fetchone()
         return dict(row) if row else None
+
+    def store_news_items(self, news_items: list[NewsItem]) -> int:
+        with sqlite3.connect(self.db_path) as connection:
+            for item in news_items:
+                connection.execute(
+                    """
+                    INSERT INTO news_items (
+                        source, title, summary, url, published_at, topic, sentiment_hint, fetched_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        item.source,
+                        item.title,
+                        item.summary,
+                        item.url,
+                        item.published_at,
+                        item.topic,
+                        item.sentiment_hint,
+                        item.fetched_at,
+                    ),
+                )
+            connection.commit()
+        return len(news_items)
+
+    def fetch_recent_news(self, limit: int = 5) -> list[dict[str, Any]]:
+        with sqlite3.connect(self.db_path) as connection:
+            connection.row_factory = sqlite3.Row
+            rows = connection.execute(
+                """
+                SELECT source, title, summary, url, published_at, topic, sentiment_hint, fetched_at
+                FROM news_items
+                ORDER BY published_at DESC, id DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        return [dict(row) for row in rows]
 
     def store_analysis_result(self, analysis: dict[str, Any], status: str = "fresh") -> int:
         with sqlite3.connect(self.db_path) as connection:
@@ -242,6 +296,74 @@ class InvestmentRepository:
             item["evidence_json"] = json.loads(item["evidence_json"])
             results.append(item)
         return results
+
+    def fetch_risk_signals_by_ids(self, signal_ids: list[int]) -> list[dict[str, Any]]:
+        if not signal_ids:
+            return []
+        placeholders = ", ".join("?" for _ in signal_ids)
+        with sqlite3.connect(self.db_path) as connection:
+            connection.row_factory = sqlite3.Row
+            rows = connection.execute(
+                f"""
+                SELECT id, signal_time, signal_type, severity, message, evidence_json, status
+                FROM risk_signals
+                WHERE id IN ({placeholders})
+                ORDER BY id ASC
+                """,
+                tuple(signal_ids),
+            ).fetchall()
+        results: list[dict[str, Any]] = []
+        for row in rows:
+            item = dict(row)
+            item["evidence_json"] = json.loads(item["evidence_json"])
+            results.append(item)
+        return results
+
+    def store_report(
+        self,
+        report_time: str,
+        report_type: str,
+        title: str,
+        content_md: str,
+        content_json: dict[str, Any],
+    ) -> int:
+        with sqlite3.connect(self.db_path) as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO reports (
+                    report_time, report_type, title, content_md, content_json
+                ) VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    report_time,
+                    report_type,
+                    title,
+                    content_md,
+                    json.dumps(content_json, ensure_ascii=False, sort_keys=True),
+                ),
+            )
+            connection.commit()
+        return int(cursor.lastrowid)
+
+    def fetch_latest_report(self, report_type: str | None = None) -> dict[str, Any] | None:
+        query = """
+            SELECT report_time, report_type, title, content_md, content_json
+            FROM reports
+        """
+        parameters: tuple[Any, ...] = ()
+        if report_type is not None:
+            query += " WHERE report_type = ?"
+            parameters = (report_type,)
+        query += " ORDER BY id DESC LIMIT 1"
+
+        with sqlite3.connect(self.db_path) as connection:
+            connection.row_factory = sqlite3.Row
+            row = connection.execute(query, parameters).fetchone()
+        if row is None:
+            return None
+        result = dict(row)
+        result["content_json"] = json.loads(result["content_json"]) if result["content_json"] else None
+        return result
 
     def count_rows(self, table_name: str) -> int:
         with sqlite3.connect(self.db_path) as connection:

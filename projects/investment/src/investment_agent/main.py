@@ -11,6 +11,7 @@ from investment_agent.providers import (
     build_provider_capabilities,
     refresh_market_quotes,
 )
+from investment_agent.services.monthly_planner import build_monthly_plan
 from investment_agent.services.portfolio_analyzer import (
     build_portfolio_analysis,
     load_target_allocation,
@@ -18,6 +19,8 @@ from investment_agent.services.portfolio_analyzer import (
 )
 from investment_agent.services.rebalance_recorder import persist_rebalance_review
 from investment_agent.services.rebalancing_engine import evaluate_rebalance
+from investment_agent.services.signal_engine import build_asset_signal_review, load_asset_research
+from investment_agent.workflows.monthly_review import run_monthly_review
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -31,6 +34,9 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("refresh-prices", help="Refresh latest price snapshots with fallback")
     subparsers.add_parser("persist-rebalance", help="Persist the current rebalance review")
     subparsers.add_parser("provider-capabilities", help="Show available market-data adapters")
+    subparsers.add_parser("monthly-plan", help="Generate the current monthly investment plan")
+    subparsers.add_parser("signal-review", help="Generate asset-level V2 signal and position review")
+    subparsers.add_parser("monthly-review", help="Run the monthly review workflow")
     return parser
 
 
@@ -150,6 +156,33 @@ def cmd_provider_capabilities() -> int:
     return 0
 
 
+def cmd_monthly_plan() -> int:
+    paths = discover_paths()
+    analysis = build_portfolio_analysis(paths.portfolio_state_path, paths.target_allocation_path)
+    targets = load_target_allocation(paths.target_allocation_path)
+    plan = build_monthly_plan(analysis, targets)
+    print(json.dumps(plan, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_monthly_review() -> int:
+    paths = discover_paths()
+    repository = InvestmentRepository(paths.db_path, paths.schema_path)
+    result = run_monthly_review(paths, repository)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_signal_review() -> int:
+    paths = discover_paths()
+    current_state = load_portfolio_state(paths.portfolio_state_path)
+    previous_state = load_portfolio_state(paths.previous_portfolio_state_path)
+    research = load_asset_research(paths.asset_research_path)
+    review = build_asset_signal_review(current_state, previous_state, research)
+    print(json.dumps(review, ensure_ascii=False, indent=2))
+    return 0
+
+
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
@@ -168,6 +201,12 @@ def main() -> int:
         return cmd_persist_rebalance()
     if args.command == "provider-capabilities":
         return cmd_provider_capabilities()
+    if args.command == "monthly-plan":
+        return cmd_monthly_plan()
+    if args.command == "signal-review":
+        return cmd_signal_review()
+    if args.command == "monthly-review":
+        return cmd_monthly_review()
 
     parser.error(f"Unsupported command: {args.command}")
     return 2

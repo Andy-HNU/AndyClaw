@@ -11,6 +11,10 @@ class Asset:
     value: float
     theme: str | None = None
     profit: float | None = None
+    shares: float | None = None
+    average_cost: float | None = None
+    asset_type: str | None = None
+    symbol: str | None = None
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "Asset":
@@ -20,6 +24,12 @@ class Asset:
             value=float(payload["value"]),
             theme=payload.get("theme"),
             profit=float(payload["profit"]) if payload.get("profit") is not None else None,
+            shares=float(payload["shares"]) if payload.get("shares") is not None else None,
+            average_cost=(
+                float(payload["average_cost"]) if payload.get("average_cost") is not None else None
+            ),
+            asset_type=str(payload["asset_type"]) if payload.get("asset_type") is not None else None,
+            symbol=str(payload["symbol"]) if payload.get("symbol") is not None else None,
         )
 
 

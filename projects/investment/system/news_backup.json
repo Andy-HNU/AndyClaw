@@ -1,0 +1,22 @@
+{
+  "news": [
+    {
+      "title": "备源：宽基配置仍是权益仓位主线",
+      "summary": "备份新闻源提示，应优先用配置纪律而不是热点轮动解释仓位动作。",
+      "url": "https://example.com/backup-broad-index",
+      "published_at": "2026-03-03",
+      "topic": "基金",
+      "sentiment_hint": "stable",
+      "fetched_at": "2026-03-10T08:05:00+08:00"
+    },
+    {
+      "title": "备源：现金缓冲有助于平滑月度加仓节奏",
+      "summary": "保留现金可以让定投和再平衡执行更从容，避免被迫追涨杀跌。",
+      "url": "https://example.com/backup-cash-buffer",
+      "published_at": "2026-03-02",
+      "topic": "宏观",
+      "sentiment_hint": "stable",
+      "fetched_at": "2026-03-10T08:05:00+08:00"
+    }
+  ]
+}

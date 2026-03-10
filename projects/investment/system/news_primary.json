@@ -1,0 +1,49 @@
+{
+  "news": [
+    {
+      "title": "政策强调中长期资金入市节奏稳定",
+      "summary": "监管继续强调引导中长期资金配置权益市场，利好宽基与核心资产配置稳定性。",
+      "url": "https://example.com/policy-long-term-funds",
+      "published_at": "2026-03-08",
+      "topic": "政策",
+      "sentiment_hint": "constructive",
+      "fetched_at": "2026-03-10T08:00:00+08:00"
+    },
+    {
+      "title": "黄金价格维持高位震荡",
+      "summary": "避险情绪与实际利率预期交错，黄金资产短期波动加大但中期配置价值仍在。",
+      "url": "https://example.com/gold-range",
+      "published_at": "2026-03-07",
+      "topic": "宏观",
+      "sentiment_hint": "watch",
+      "fetched_at": "2026-03-10T08:00:00+08:00"
+    },
+    {
+      "title": "AI 算力链成交回暖但分化明显",
+      "summary": "主题资产反弹持续性仍需观察，择时不应覆盖长期仓位纪律。",
+      "url": "https://example.com/ai-chain",
+      "published_at": "2026-03-06",
+      "topic": "行业",
+      "sentiment_hint": "mixed",
+      "fetched_at": "2026-03-10T08:00:00+08:00"
+    },
+    {
+      "title": "债券基金收益率回落后进入震荡区间",
+      "summary": "短债和中长债表现趋稳，适合作为组合波动缓冲层继续观察。",
+      "url": "https://example.com/bond-fund",
+      "published_at": "2026-03-05",
+      "topic": "基金",
+      "sentiment_hint": "stable",
+      "fetched_at": "2026-03-10T08:00:00+08:00"
+    },
+    {
+      "title": "制造业升级主题继续获增量关注",
+      "summary": "高端制造与机器人方向仍有政策与产业催化，但估值分化较大。",
+      "url": "https://example.com/manufacturing-upgrade",
+      "published_at": "2026-03-04",
+      "topic": "行业",
+      "sentiment_hint": "constructive",
+      "fetched_at": "2026-03-10T08:00:00+08:00"
+    }
+  ]
+}

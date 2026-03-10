@@ -80,6 +80,43 @@ Expected:
 - open `allocation_drift` signals returned
 - risk signal count matches rebalance breach count
 
+## Monthly plan
+```bash
+cd /root/.openclaw/workspace/projects/investment
+PYTHONPATH=src python3 -m investment_agent.main monthly-plan
+```
+
+Expected:
+- `status` returned
+- `underweight_categories` returned
+- recommendation amounts sum to the configured monthly budget
+
+## Monthly review
+```bash
+cd /root/.openclaw/workspace/projects/investment
+PYTHONPATH=src python3 -m investment_agent.main monthly-review
+```
+
+Expected:
+- `status` is `success`
+- `price_refresh.status` is `success`
+- `news_refresh.status` is `success`
+- `monthly_plan` returned
+- `report.report_type` is `monthly`
+- workflow persists supporting data and a report row
+
+## Signal review
+```bash
+cd /root/.openclaw/workspace/projects/investment
+PYTHONPATH=src python3 -m investment_agent.main signal-review
+```
+
+Expected:
+- `positions` returned
+- `research_highlights` returned
+- `signals` returned
+- at least one signal includes severity/evidence fields
+
 ## Test suite
 ```bash
 cd /root/.openclaw/workspace/projects/investment

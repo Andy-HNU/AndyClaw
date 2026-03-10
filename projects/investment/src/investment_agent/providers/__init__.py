@@ -3,6 +3,7 @@ from investment_agent.providers.factory import (
     EFinanceFundProvider,
     ProviderCapability,
     build_default_market_data_chain,
+    build_default_news_data_chain,
     build_provider_capabilities,
 )
 from investment_agent.providers.market_data import (
@@ -12,6 +13,14 @@ from investment_agent.providers.market_data import (
     MarketDataProviderError,
     MarketQuote,
     refresh_market_quotes,
+)
+from investment_agent.providers.news_data import (
+    FailingNewsDataProvider,
+    JsonFileNewsDataProvider,
+    NewsDataProvider,
+    NewsDataProviderError,
+    NewsItem,
+    refresh_news_items,
 )
 
 __all__ = [
@@ -24,6 +33,13 @@ __all__ = [
     "MarketQuote",
     "ProviderCapability",
     "build_default_market_data_chain",
+    "build_default_news_data_chain",
     "build_provider_capabilities",
+    "FailingNewsDataProvider",
+    "JsonFileNewsDataProvider",
+    "NewsDataProvider",
+    "NewsDataProviderError",
+    "NewsItem",
     "refresh_market_quotes",
+    "refresh_news_items",
 ]
