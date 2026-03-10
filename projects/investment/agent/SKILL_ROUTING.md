@@ -53,7 +53,15 @@
   - `portfolio_analyzer`
   - `weekly-review` / `monthly-review`
 
-### 7. 外部能力补充
+### 7. 研究对象维护
+触发词：补研究、补板块、补公司、更新基金经理、补估值、补夏普比、研究对象
+调用：
+- `research_editor`
+- 必要时再进入：
+  - `signal-review`
+  - `weekly-review` / `monthly-review`
+
+### 8. 外部能力补充
 触发词：现成项目、开源实现、GitHub、参考仓库、搜索现有 skill
 调用：
 - 先阅读 `agent/GITHUB_SKILL_DISCOVERY.md`
@@ -78,3 +86,4 @@
 - 若主数据源失败，先切换备源；若备源也失败，输出“数据刷新失败”并保留上次快照
 - 若用户新增的是当前未支持的资产类型，应明确说明“对象可记录，但暂不能直接查询真实行情”
 - 若用户提供的是整仓截图，应优先走 `sync_snapshot`，并在覆盖前保留上一版快照
+- 若用户新增资产后缺少研究对象，应明确提示转入 `research_editor`

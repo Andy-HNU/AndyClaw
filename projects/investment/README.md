@@ -16,6 +16,7 @@ Current implemented baseline:
 - CLI entry points
 - unittest coverage for the first slice
 - OpenClaw-facing portfolio editing skill and control-surface documentation
+- OpenClaw-facing research editing skill and production templates for object files
 
 Production note:
 - `system/portfolio_state.json` can contain test sample holdings in the repo

@@ -74,8 +74,15 @@ or Codex-side changes rather than a dedicated OpenClaw editing skill.
   - `system/asset_research.json`
 - extensibility status:
   - data-driven
-  - currently not naturally editable through a dedicated skill
-  - should get a future `research_editor` interface
+  - now should be handled via `skills/research_editor/SKILL.md`
+  - production should be allowed to start from `system/asset_research.template.json`
+
+### Watchlists
+- source of truth:
+  - future `system/watchlists.json`
+- extensibility status:
+  - currently only a reserved interface with template
+  - should become OpenClaw-editable later
 
 ## 3. Hard-Coded In Code Today
 
@@ -132,14 +139,18 @@ These are the best candidates for future OpenClaw-driven extensibility.
 - add fair value
 - add manager metadata
 - add hot topics
-
-This likely needs a second skill later, e.g. `research_editor`.
+- add recent bars when the user or a trusted source provides them
 
 ### Daily screenshot intake
 - ingest total holdings screenshots
 - ingest separate gold screenshots
 - convert OCR results into structured portfolio objects
 - validate before overriding the current snapshot
+
+### Watchlist editing
+- maintain weekly/monthly focus
+- maintain custom topics for reports
+- reserve hooks for future report personalization
 
 ### Watchlists and custom report focus
 - “本周重点盯着机器人和黄金”

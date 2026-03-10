@@ -33,10 +33,11 @@ editing flows:
   - add asset research object
   - update sector / companies / fair value / manager / hot topics
   - mark missing research for newly added assets
+  - start from `system/asset_research.template.json` in production if needed
 
 ### Watchlists and report focus
-- recommended future file:
-  - `system/watchlists.json`
+- recommended file:
+  - `system/watchlists.template.json`
 - operations:
   - add focus themes
   - remove focus themes
@@ -140,6 +141,7 @@ These are good candidates for future OpenClaw-controlled interfaces:
 ### Research editor
 - maintain `asset_research.json`
 - especially needed when new assets are added
+ - should be the default path for natural-language research supplementation
 
 ### Snapshot importer
 - dedicated ingestion interface for screenshot-derived payloads
@@ -147,6 +149,7 @@ These are good candidates for future OpenClaw-controlled interfaces:
 
 ### Watchlist editor
 - maintain focus themes, sectors, or assets for reports and alerts
+ - should eventually write a runtime `watchlists.json` based on the template
 
 ### Task runner
 - compose:
