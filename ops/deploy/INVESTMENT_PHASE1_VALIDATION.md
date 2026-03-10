@@ -20,6 +20,8 @@ Current runnable slice for the investment project:
 - position/share tracking baseline
 - asset-level signal review baseline
 - first real external market/news adapter baseline
+- weekly review workflow baseline
+- stable report schema baseline
 - extended CLI
 - extended tests
 
@@ -36,8 +38,10 @@ Current runnable slice for the investment project:
 - `projects/investment/src/investment_agent/services/rebalance_recorder.py`
 - `projects/investment/src/investment_agent/services/report_generator.py`
 - `projects/investment/src/investment_agent/services/signal_engine.py`
+- `projects/investment/src/investment_agent/workflows/weekly_review.py`
 - `projects/investment/src/investment_agent/workflows/monthly_review.py`
 - `projects/investment/tests_python/test_bootstrap.py`
+- `projects/investment/storage/REPORT_SCHEMA.md`
 
 ## Commands Run
 
@@ -153,7 +157,7 @@ PYTHONPATH=src python3 -m investment_agent.main monthly-review
 ```
 
 Result:
-- price refresh succeeded with `mock-primary`
+- price refresh succeeded with `akshare-market`
 - news refresh succeeded with `akshare-news`
 - current workflow persisted:
   - price snapshots
@@ -190,6 +194,26 @@ Result:
     - `risk_adjusted_return_deterioration`
     - `manager_style_drift`
 
+### Weekly review
+```bash
+cd /root/.openclaw/workspace/projects/investment
+PYTHONPATH=src python3 -m investment_agent.main weekly-review
+```
+
+Result:
+- weekly workflow refreshes prices and news
+- weekly report is persisted into `reports`
+- report schema includes:
+  - `schema_version`
+  - `summary`
+  - `sections`
+- weekly sections include:
+  - `portfolio_snapshot`
+  - `position_changes`
+  - `risk_summary`
+  - `news_summary`
+  - `watchlist`
+
 ### Tests
 ```bash
 cd /root/.openclaw/workspace/projects/investment
@@ -197,7 +221,7 @@ PYTHONPATH=src python3 -m unittest discover -s tests_python -v
 ```
 
 Result:
-- 24 tests passed
+- 26 tests passed
 
 ## Notes
 - The spec-style ratio test uses synthetic data from the test doc, not the
@@ -217,12 +241,14 @@ Result:
 - The current V2 batch-1 signal layer uses deterministic local research
   fixtures. This keeps test outputs stable while avoiding premature direct
   dependency on external trading repos.
+- The current report schema is stable enough for OpenClaw/runtime consumption,
+  but should still be treated as a baseline rather than a frozen public API.
 - Current phase naming is now broader than the original document title: the
   validation covers the early reporting/workflow baseline in addition to the
   original phase-1 to phase-3 implementation slice.
 
 ## Next Rollout Target
-- implement a real adapter behind the `market_data_provider` abstraction
-- implement a real adapter behind the `news_data_provider` abstraction
+- decide whether to keep `cash` on the current explicit local fixture model
 - prepare a wider OpenClaw runtime acceptance and replay flow
-- commit the monthly review baseline as the next formal phase checkpoint
+- promote the current weekly/monthly report schema baseline into a more formal contract
+- commit the current real-provider + weekly/monthly workflow baseline as the next formal phase checkpoint

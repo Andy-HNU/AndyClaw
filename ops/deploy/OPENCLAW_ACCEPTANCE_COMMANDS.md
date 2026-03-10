@@ -107,6 +107,20 @@ Expected:
 - `report.report_type` is `monthly`
 - workflow persists supporting data and a report row
 
+## Weekly review
+```bash
+cd /root/.openclaw/workspace/projects/investment
+PYTHONPATH=src python3 -m investment_agent.main weekly-review
+```
+
+Expected:
+- `status` is `success`
+- `price_refresh.status` is `success`
+- `news_refresh.status` is `success`
+- `report.report_type` is `weekly`
+- `report.content_json.schema_version` is present
+- `report.content_json.sections` contains weekly section ids
+
 ## Signal review
 ```bash
 cd /root/.openclaw/workspace/projects/investment

@@ -34,7 +34,10 @@ tester, and acceptance layer.
 - V2 batch-1 baseline now includes position/share tracking, asset research fixtures, and asset-level signal review
 - CLI surface now also includes `signal-review` for direct inspection of V2 signals
 - first real external adapter baseline now uses AKShare for ETF/open-fund prices, Shanghai Gold Exchange spot gold, and keyword news, with fixture fallback kept only for cash-like assets
-- local validation currently passes with `24` Python tests
+- weekly review workflow is now implemented and persists `weekly` reports
+- report schema baseline is now documented and stabilized around `schema_version` and `sections`
+- OpenClaw playbooks are now aligned with the real CLI surface for daily, weekly, and monthly review
+- local validation currently passes with `26` Python tests
 
 ## In Progress
 - move from mock-only market/news provider execution toward real external adapters
@@ -42,10 +45,10 @@ tester, and acceptance layer.
 - decide whether the monthly-review baseline should be committed as the next formal phase checkpoint
 
 ## Next Steps
-1. decide whether to replace the current AKShare+fixture hybrid with broader real coverage for gold/cash-like assets
-2. expand OpenClaw acceptance playbooks for refresh -> analysis -> monthly-review flow
-3. decide whether to split report generation / workflow outputs into more stable user-facing schemas
-4. evaluate whether `efinance` is still worth keeping as a secondary real provider path
+1. decide whether to replace the remaining cash-like fixture path with a more explicit non-market cash model
+2. evaluate whether `efinance` is still worth keeping as a secondary real provider path
+3. extend report schema stability from the current baseline into more formal consumer contracts
+4. expand OpenClaw runtime acceptance from command-level checks into reusable replay scripts
 5. record the current phase-1 to phase-5 baseline as a formal committed checkpoint
 
 ## Do Not Forget

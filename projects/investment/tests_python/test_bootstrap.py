@@ -35,6 +35,7 @@ from investment_agent.services.portfolio_analyzer import (
 )
 from investment_agent.services.rebalancing_engine import evaluate_rebalance
 from investment_agent.services.report_generator import generate_monthly_report
+from investment_agent.services.report_generator import generate_weekly_report
 from investment_agent.services.signal_engine import (
     PriceBar,
     assess_asset_signals,
@@ -47,6 +48,7 @@ from investment_agent.services.signal_engine import (
     load_asset_research,
 )
 from investment_agent.workflows.monthly_review import run_monthly_review
+from investment_agent.workflows.weekly_review import run_weekly_review
 
 
 class InvestmentBootstrapTests(unittest.TestCase):
@@ -411,8 +413,48 @@ class InvestmentBootstrapTests(unittest.TestCase):
 
         self.assertIn("position_changes", report["content_json"])
         self.assertIn("research_highlights", report["content_json"])
+        self.assertEqual(report["content_json"]["schema_version"], "1.0")
+        self.assertEqual(report["content_json"]["sections"][0]["section_id"], "portfolio_snapshot")
         self.assertIn("细分持仓变化", report["content_md"])
         self.assertIn("资产研究摘要", report["content_md"])
+
+    def test_weekly_report_uses_stable_schema_sections(self) -> None:
+        analysis = build_portfolio_analysis(
+            self.paths.portfolio_state_path, self.paths.target_allocation_path
+        )
+        current_state = load_portfolio_state(self.paths.portfolio_state_path)
+        previous_state = load_portfolio_state(self.paths.previous_portfolio_state_path)
+        research = load_asset_research(self.paths.asset_research_path)
+        review = build_asset_signal_review(current_state, previous_state, research)
+        report = generate_weekly_report(
+            analysis=analysis,
+            position_changes=review["positions"],
+            risk_signals=review["signals"],
+            news_items=[],
+        )
+
+        self.assertEqual(report["report_type"], "weekly")
+        self.assertEqual(report["content_json"]["schema_version"], "1.0")
+        section_ids = [item["section_id"] for item in report["content_json"]["sections"]]
+        self.assertEqual(
+            section_ids,
+            ["portfolio_snapshot", "position_changes", "risk_summary", "news_summary", "watchlist"],
+        )
+        self.assertIn("本周仓位快照", report["content_md"])
+
+    def test_weekly_review_workflow_persists_weekly_report(self) -> None:
+        self.repository.initialize()
+
+        result = run_weekly_review(self.paths, self.repository, news_limit=5)
+
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(result["price_refresh"]["status"], "success")
+        self.assertEqual(result["news_refresh"]["status"], "success")
+        latest_report = self.repository.fetch_latest_report("weekly")
+        self.assertIsNotNone(latest_report)
+        self.assertEqual(latest_report["report_type"], "weekly")
+        self.assertEqual(latest_report["content_json"]["schema_version"], "1.0")
+        self.assertIn("position_changes", latest_report["content_json"])
 
     def test_monthly_review_workflow_persists_report_and_supporting_data(self) -> None:
         self.repository.initialize()

@@ -23,3 +23,10 @@
 - 调用 `news_collector`
 - 必要时调用 `portfolio_analyzer`
 - 最终输出观察项或建议摘要
+
+## 用例 4
+用户说：给我一份本周投资周报。
+
+### 预期
+- 调用 `weekly_review_workflow`
+- 输出本周仓位变化、风险、新闻和待验证事项

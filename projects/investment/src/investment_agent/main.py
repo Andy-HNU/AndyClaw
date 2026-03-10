@@ -20,6 +20,7 @@ from investment_agent.services.portfolio_analyzer import (
 from investment_agent.services.rebalance_recorder import persist_rebalance_review
 from investment_agent.services.rebalancing_engine import evaluate_rebalance
 from investment_agent.services.signal_engine import build_asset_signal_review, load_asset_research
+from investment_agent.workflows.weekly_review import run_weekly_review
 from investment_agent.workflows.monthly_review import run_monthly_review
 
 
@@ -36,6 +37,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("provider-capabilities", help="Show available market-data adapters")
     subparsers.add_parser("monthly-plan", help="Generate the current monthly investment plan")
     subparsers.add_parser("signal-review", help="Generate asset-level V2 signal and position review")
+    subparsers.add_parser("weekly-review", help="Run the weekly review workflow")
     subparsers.add_parser("monthly-review", help="Run the monthly review workflow")
     return parser
 
@@ -183,6 +185,14 @@ def cmd_signal_review() -> int:
     return 0
 
 
+def cmd_weekly_review() -> int:
+    paths = discover_paths()
+    repository = InvestmentRepository(paths.db_path, paths.schema_path)
+    result = run_weekly_review(paths, repository)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
@@ -205,6 +215,8 @@ def main() -> int:
         return cmd_monthly_plan()
     if args.command == "signal-review":
         return cmd_signal_review()
+    if args.command == "weekly-review":
+        return cmd_weekly_review()
     if args.command == "monthly-review":
         return cmd_monthly_review()
 
