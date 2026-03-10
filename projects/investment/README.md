@@ -19,6 +19,7 @@ Current implemented baseline:
 - OpenClaw-facing research editing skill and production templates for object files
 - OCR screenshot importer module and OpenClaw screenshot-import skill
 - vision-first snapshot importer with local OCR fallback
+- daily review workflow baseline for same-day suggestions and news
 
 Production note:
 - `system/portfolio_state.json` can contain test sample holdings in the repo
@@ -34,6 +35,7 @@ PYTHONPATH=src python3 -m investment_agent.main portfolio-summary
 PYTHONPATH=src python3 -m investment_agent.main refresh-prices
 PYTHONPATH=src python3 -m investment_agent.main provider-capabilities
 PYTHONPATH=src python3 -m investment_agent.main signal-review
+PYTHONPATH=src python3 -m investment_agent.main daily-review
 PYTHONPATH=src python3 -m investment_agent.main import-snapshot --portfolio-image /root/usrFile/bb560d57ad2761440ddc9b4069e96e83.jpg --gold-image /root/usrFile/a9c549ccf141b31d97cd81b79aa2f98c.jpg
 PYTHONPATH=src python3 -m investment_agent.main ocr-portfolio --portfolio-image /root/usrFile/bb560d57ad2761440ddc9b4069e96e83.jpg --gold-image /root/usrFile/a9c549ccf141b31d97cd81b79aa2f98c.jpg
 PYTHONPATH=src python3 -m investment_agent.main weekly-review

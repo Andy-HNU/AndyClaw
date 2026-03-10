@@ -167,6 +167,7 @@ These are good candidates for future OpenClaw-controlled interfaces:
   - sync snapshot
   - refresh prices
   - signal review
+  - daily review
   - weekly/monthly report
 
 ### Reminder scheduler
@@ -175,6 +176,10 @@ These are good candidates for future OpenClaw-controlled interfaces:
   receiving local image paths or attachment payloads
 - future Telegram attachments should enter through `import-snapshot`
 - see `TELEGRAM_DAILY_CAPTURE_FLOW.md`
+
+### Natural-language task definitions
+- OpenClaw should be able to convert recurring requests into structured task intents
+- see `NATURAL_LANGUAGE_TASK_SURFACE.md`
 
 ## 7. Keep Code-Owned
 

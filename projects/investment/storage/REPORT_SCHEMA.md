@@ -43,6 +43,23 @@ Each item may include:
 - important news headlines
 - next actions / watch items
 
+## Daily Report
+
+### Required sections
+- `portfolio_snapshot`
+- `rebalance_review`
+- `risk_summary`
+- `news_summary`
+- `action_items`
+
+### Daily summary expectations
+- latest total portfolio value
+- current allocations and deviations
+- same-day rebalance check
+- open risk signals
+- same-day news headlines
+- suggested next actions
+
 ## Monthly Report
 
 ### Required sections

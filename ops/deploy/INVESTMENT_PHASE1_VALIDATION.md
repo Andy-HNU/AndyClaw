@@ -23,6 +23,7 @@ Current runnable slice for the investment project:
 - weekly review workflow baseline
 - stable report schema baseline
 - screenshot import baseline with vision-first orchestration and OCR fallback
+- daily review workflow baseline
 - extended CLI
 - extended tests
 
@@ -42,6 +43,7 @@ Current runnable slice for the investment project:
 - `projects/investment/src/investment_agent/services/ocr_importer.py`
 - `projects/investment/src/investment_agent/services/snapshot_importer.py`
 - `projects/investment/src/investment_agent/workflows/weekly_review.py`
+- `projects/investment/src/investment_agent/workflows/daily_review.py`
 - `projects/investment/src/investment_agent/workflows/monthly_review.py`
 - `projects/investment/tests_python/test_bootstrap.py`
 - `projects/investment/storage/REPORT_SCHEMA.md`
@@ -197,6 +199,27 @@ Result:
     - `risk_adjusted_return_deterioration`
     - `manager_style_drift`
 
+### Daily review
+```bash
+cd /root/.openclaw/workspace/projects/investment
+PYTHONPATH=src python3 -m investment_agent.main daily-review
+```
+
+Result:
+- daily workflow refreshes prices and news
+- daily workflow evaluates current rebalance status
+- daily workflow persists a `daily` report into `reports`
+- daily report currently includes:
+  - `portfolio_snapshot`
+  - `rebalance_review`
+  - `risk_summary`
+  - `news_summary`
+  - `action_items`
+- current sample output includes same-day action guidance based on:
+  - current allocation deviation
+  - open signal set
+  - top fetched news items
+
 ### Weekly review
 ```bash
 cd /root/.openclaw/workspace/projects/investment
@@ -244,7 +267,7 @@ PYTHONPATH=src python3 -m unittest discover -s tests_python -v
 ```
 
 Result:
-- 31 tests passed
+- 33 tests passed
 
 ## Notes
 - The spec-style ratio test uses synthetic data from the test doc, not the
@@ -267,6 +290,9 @@ Result:
 - The current snapshot import path is deliberately layered: model vision is
   preferred when configured, but local OCR remains the stable fallback so
   OpenClaw can still operate without online vision dependencies.
+- The current daily/weekly/monthly workflow split should be treated as basic
+  infrastructure only; higher-order recurring task composition is intentionally
+  left to OpenClaw's natural-language runtime layer.
 - The current report schema is stable enough for OpenClaw/runtime consumption,
   but should still be treated as a baseline rather than a frozen public API.
 - Current phase naming is now broader than the original document title: the

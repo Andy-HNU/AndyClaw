@@ -1,5 +1,25 @@
-# 数据刷新工作流
+# 日流程工作流
 
+## 日流程一：截图同步后的当日建议
+1. 若用户先发截图：
+   - 先执行 `import-snapshot`
+   - 再走 `portfolio_editor`
+2. 执行：
+   `PYTHONPATH=src python3 -m investment_agent.main daily-review`
+3. 检查输出中的：
+   - `price_refresh`
+   - `news_refresh`
+   - `rebalance`
+   - `signal_review`
+   - `report`
+4. 输出：
+   - 今日仓位快照
+   - 是否触发再平衡检查
+   - 今日风险摘要
+   - 今日板块新闻
+   - 建议动作
+
+## 日流程二：仅刷新行情与新闻
 1. 读取数据源配置
 2. 先调用主数据源获取行情
 3. 再获取新闻/资讯

@@ -23,6 +23,7 @@
 - `snapshot_importer` 应优先使用视觉模型，OCR 只作为兜底
 - 若用户是在补充板块、公司、基金经理、估值、热点等研究信息，优先走 `research_editor`
 - 若用户是在问分析、风险、报告，则优先走既有 workflow / skill
+- 若用户是在描述新的周期性任务，优先把它转成自然语言任务定义，再决定是否真的需要新增代码 workflow
 - 若用户是在引入新的资产类型、provider、信号规则、schema 结构，则应转为 Codex 开发任务，而不是仅靠 skill 文本扩展
 
 ## OpenClaw 控制面

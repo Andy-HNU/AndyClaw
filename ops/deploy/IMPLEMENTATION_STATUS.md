@@ -40,13 +40,16 @@ tester, and acceptance layer.
 - screenshot import baseline is now implemented with a vision-first entry point and local OCR fallback
 - OpenClaw now has dedicated runtime-facing skill surfaces for portfolio editing, research editing, and screenshot import
 - Telegram daily capture flow is now documented as a transport-layer integration path into `import-snapshot`
-- local validation currently passes with `31` Python tests
+- daily review workflow baseline is now implemented for same-day仓位检查、风险摘要、板块新闻和建议动作
+- OpenClaw natural-language task surface is now documented so recurring task intents can stay runtime-defined instead of code-hardcoded
+- local validation currently passes with `33` Python tests
 
 ## In Progress
 - move from mock-only market/news provider execution toward real external adapters
 - keep validation docs and OpenClaw acceptance commands aligned with the expanded CLI surface
 - decide whether the monthly-review baseline should be committed as the next formal phase checkpoint
 - keep the vision client optional so local OCR remains a deterministic fallback path
+- keep recurring task creation in the OpenClaw/runtime layer instead of hard-coding every schedule into the repo
 
 ## Next Steps
 1. decide whether to replace the remaining cash-like fixture path with a more explicit non-market cash model

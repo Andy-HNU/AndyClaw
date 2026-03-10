@@ -148,6 +148,20 @@ Expected:
 - `fallback_used` is present
 - `next_actions` includes `sync_to_portfolio_state_via_portfolio_editor`
 
+## Daily review
+```bash
+cd /root/.openclaw/workspace/projects/investment
+PYTHONPATH=src python3 -m investment_agent.main daily-review
+```
+
+Expected:
+- `status` is `success`
+- `price_refresh.status` is `success`
+- `news_refresh.status` is `success`
+- `rebalance.triggered` is returned
+- `report.report_type` is `daily`
+- `report.content_json.sections` contains daily section ids
+
 ## Test suite
 ```bash
 cd /root/.openclaw/workspace/projects/investment

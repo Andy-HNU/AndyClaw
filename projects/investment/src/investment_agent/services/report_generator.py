@@ -15,6 +15,88 @@ def _build_summary(
     }
 
 
+def generate_daily_report(
+    analysis: dict[str, object],
+    rebalance_result: dict[str, object],
+    risk_signals: list[dict[str, object]],
+    news_items: list[dict[str, object]],
+) -> dict[str, object]:
+    title = f"{analysis['updated_at']} 投资日报"
+    action_items = []
+    if rebalance_result["triggered"]:
+        action_items.append(rebalance_result["priority_action"])
+    action_items.extend([item["title"] for item in news_items[:3]])
+    sections = [
+        {
+            "section_id": "portfolio_snapshot",
+            "title": "今日仓位快照",
+            "items": [
+                {"label": "total_value", "value": analysis["total_value"]},
+                {"label": "allocations_pct", "value": analysis["allocations_pct"]},
+                {"label": "deviations_pct", "value": analysis["deviations_pct"]},
+            ],
+        },
+        {"section_id": "rebalance_review", "title": "再平衡检查", "items": [rebalance_result]},
+        {"section_id": "risk_summary", "title": "今日风险摘要", "items": risk_signals},
+        {"section_id": "news_summary", "title": "今日板块新闻", "items": news_items},
+        {"section_id": "action_items", "title": "建议动作", "items": action_items},
+    ]
+    risk_lines = [f"- {item['signal_type']}: {item['message']}" for item in risk_signals[:5]] or ["- 暂无新增风险"]
+    news_lines = [f"- [{item['topic']}] {item['title']}" for item in news_items[:5]] or ["- 暂无新闻摘要"]
+    action_lines = [f"- {item}" for item in action_items] or ["- 保持观察，等待更多证据"]
+    content_md = "\n".join(
+        [
+            f"# {title}",
+            "",
+            "## 今日仓位快照",
+            f"- 总资产: {analysis['total_value']:.2f}",
+            f"- 当前比例: {analysis['allocations_pct']}",
+            f"- 相对目标偏离: {analysis['deviations_pct']}",
+            "",
+            "## 再平衡检查",
+            f"- 是否触发: {'是' if rebalance_result['triggered'] else '否'}",
+            f"- 优先动作: {rebalance_result['priority_action']}",
+            "",
+            "## 今日风险摘要",
+            *risk_lines,
+            "",
+            "## 今日板块新闻",
+            *news_lines,
+            "",
+            "## 建议动作",
+            *action_lines,
+        ]
+    )
+    content_json = {
+        "schema_version": "1.0",
+        "report_type": "daily",
+        "report_time": analysis["updated_at"],
+        "title": title,
+        "summary": _build_summary(
+            report_type="daily",
+            total_value=float(analysis["total_value"]),
+            risk_signals=risk_signals,
+            news_items=news_items,
+        ),
+        "sections": sections,
+        "portfolio": {
+            "total_value": analysis["total_value"],
+            "allocations_pct": analysis["allocations_pct"],
+            "deviations_pct": analysis["deviations_pct"],
+        },
+        "rebalance": rebalance_result,
+        "risk_summary": risk_signals,
+        "news_observations": news_items,
+        "action_items": action_items,
+    }
+    return {
+        "report_type": "daily",
+        "title": title,
+        "content_md": content_md,
+        "content_json": content_json,
+    }
+
+
 def generate_monthly_report(
     analysis: dict[str, object],
     rebalance_result: dict[str, object],
