@@ -80,7 +80,7 @@ def refresh_news_items(
     for index, provider in enumerate(providers):
         try:
             items = provider.get_latest_news(limit=limit)
-            source = items[0].source if items else f"provider_{index}"
+            source = str(getattr(provider, "source_name", items[0].source if items else f"provider_{index}"))
             return {
                 "status": "success",
                 "used_backup": index > 0,

@@ -83,7 +83,7 @@ def refresh_market_quotes(
     for index, provider in enumerate(providers):
         try:
             quotes = provider.get_latest_quotes(asset_codes)
-            source = quotes[0].source if quotes else f"provider_{index}"
+            source = str(getattr(provider, "source_name", quotes[0].source if quotes else f"provider_{index}"))
             return {
                 "status": "success",
                 "used_backup": index > 0,

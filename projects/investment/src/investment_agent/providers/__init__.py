@@ -1,5 +1,6 @@
 from investment_agent.providers.factory import (
-    AkshareETFProvider,
+    AkshareMarketProvider,
+    AkshareNewsProvider,
     EFinanceFundProvider,
     ProviderCapability,
     build_default_market_data_chain,
@@ -24,7 +25,8 @@ from investment_agent.providers.news_data import (
 )
 
 __all__ = [
-    "AkshareETFProvider",
+    "AkshareMarketProvider",
+    "AkshareNewsProvider",
     "EFinanceFundProvider",
     "FailingMarketDataProvider",
     "JsonFileMarketDataProvider",

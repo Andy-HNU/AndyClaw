@@ -19,6 +19,7 @@ Current runnable slice for the investment project:
 - monthly review workflow
 - position/share tracking baseline
 - asset-level signal review baseline
+- first real external market/news adapter baseline
 - extended CLI
 - extended tests
 
@@ -82,9 +83,11 @@ PYTHONPATH=src python3 -m investment_agent.main refresh-prices
 ```
 
 Result:
-- mock primary provider succeeds
+- AKShare hybrid primary provider succeeds
 - 10 standardized price snapshots inserted into SQLite
-- provider fallback path is covered by tests
+- ETF and open-fund assets use live AKShare data
+- unsupported assets such as `黄金` and `现金` fall back to local fixture quotes inside the primary provider
+- provider fallback path is still covered by tests
 
 ### Provider capabilities
 ```bash
@@ -93,9 +96,9 @@ PYTHONPATH=src python3 -m investment_agent.main provider-capabilities
 ```
 
 Result:
-- current environment reports `akshare` and `efinance` as unavailable
-- local mock primary/backup providers remain enabled
-- runtime now exposes why real providers are not yet active
+- current environment reports `akshare-market` and `akshare-news` as enabled
+- `efinance` remains unavailable
+- local mock providers remain enabled as controlled backup sources
 
 ### Persist analysis
 ```bash
@@ -151,7 +154,7 @@ PYTHONPATH=src python3 -m investment_agent.main monthly-review
 
 Result:
 - price refresh succeeded with `mock-primary`
-- news refresh succeeded with `mock-news-primary`
+- news refresh succeeded with `akshare-news`
 - current workflow persisted:
   - price snapshots
   - news items
@@ -194,7 +197,7 @@ PYTHONPATH=src python3 -m unittest discover -s tests_python -v
 ```
 
 Result:
-- 21 tests passed
+- 24 tests passed
 
 ## Notes
 - The spec-style ratio test uses synthetic data from the test doc, not the
@@ -208,8 +211,9 @@ Result:
   capability detection reports them as unavailable instead of silently failing
   at runtime.
 - The current monthly-review workflow is runnable and validated locally, but
-  it still depends on deterministic mock market/news inputs rather than real
-  upstream adapters.
+  it now uses real AKShare adapters for ETF/open-fund price refresh and
+  keyword news collection, with local fixtures kept only for unsupported
+  assets such as cash and gold.
 - The current V2 batch-1 signal layer uses deterministic local research
   fixtures. This keeps test outputs stable while avoiding premature direct
   dependency on external trading repos.

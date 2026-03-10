@@ -46,6 +46,7 @@ Expected:
 - `refresh_result.status` is `success`
 - `inserted_rows` matches current asset count
 - `refresh_result.source` returned
+- if `akshare` is installed, the source should prefer the real provider before mock fallback
 
 ## Provider capabilities
 ```bash
@@ -55,7 +56,7 @@ PYTHONPATH=src python3 -m investment_agent.main provider-capabilities
 
 Expected:
 - provider list returned
-- unavailable real providers explain why they are disabled
+- enabled real providers explain that their adapters are active
 - local mock providers remain enabled
 
 ## Persist analysis

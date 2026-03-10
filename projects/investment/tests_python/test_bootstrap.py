@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import importlib.util
 import sqlite3
+import types
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
+
+import pandas as pd
 
 from investment_agent.config import discover_paths
 from investment_agent.db.repository import InvestmentRepository
@@ -13,10 +18,13 @@ from investment_agent.providers import (
     FailingNewsDataProvider,
     JsonFileMarketDataProvider,
     JsonFileNewsDataProvider,
+    build_default_market_data_chain,
+    build_default_news_data_chain,
     build_provider_capabilities,
     refresh_market_quotes,
     refresh_news_items,
 )
+from investment_agent.providers.factory import AkshareMarketProvider, AkshareNewsProvider
 from investment_agent.services.monthly_planner import build_monthly_plan
 from investment_agent.services.rebalance_recorder import persist_rebalance_review
 from investment_agent.services.portfolio_analyzer import (
@@ -148,6 +156,70 @@ class InvestmentBootstrapTests(unittest.TestCase):
         latest = self.repository.fetch_latest_price_snapshot("ai")
         self.assertIsNotNone(latest)
         self.assertEqual(latest["source"], "mock-primary")
+
+    def test_akshare_market_provider_standardizes_etf_fund_and_fixture_quotes(self) -> None:
+        provider = AkshareMarketProvider(self.paths)
+        fake_module = types.SimpleNamespace(
+            fund_etf_spot_em=lambda: pd.DataFrame(
+                [
+                    {
+                        "代码": "561200",
+                        "名称": "电网指数",
+                        "最新价": 1.127,
+                        "最高价": 1.133,
+                        "最低价": 1.119,
+                        "成交量": 1502300,
+                        "更新时间": "2026-03-10 15:00:00",
+                    }
+                ]
+            ),
+            fund_value_estimation_em=lambda symbol="全部": pd.DataFrame(
+                [
+                    {
+                        "基金代码": "003376",
+                        "基金名称": "广发中债7-10年国开债指数A",
+                        "2026-03-10-估算数据-估算值": 1.3451,
+                        "2026-03-10-公布数据-单位净值": 1.3449,
+                    }
+                ]
+            ),
+        )
+
+        with mock.patch("importlib.import_module", return_value=fake_module):
+            quotes = provider.get_latest_quotes(["power_grid", "广发中债7-10年", "黄金", "现金"])
+
+        by_code = {item.asset_code: item for item in quotes}
+        self.assertEqual(by_code["power_grid"].source, "akshare-market")
+        self.assertAlmostEqual(by_code["广发中债7-10年"].close_price, 1.3451, places=4)
+        self.assertEqual(by_code["黄金"].source, "akshare-market-fixture")
+        self.assertEqual(by_code["现金"].close_price, 1.0)
+
+    def test_akshare_news_provider_standardizes_keyword_and_macro_news(self) -> None:
+        provider = AkshareNewsProvider(self.paths)
+        fake_module = types.SimpleNamespace(
+            stock_news_em=lambda symbol: pd.DataFrame(
+                [
+                    {
+                        "关键词": symbol,
+                        "新闻标题": f"{symbol} 新闻标题",
+                        "新闻内容": f"{symbol} 新闻摘要",
+                        "发布时间": "2026-03-10 12:00:00",
+                        "文章来源": "东财",
+                        "新闻链接": f"https://example.com/{symbol}",
+                    }
+                ]
+            ),
+            stock_news_main_cx=lambda: pd.DataFrame(
+                [{"tag": "市场动态", "summary": "宏观摘要", "url": "https://example.com/2026-03-10/cx"}]
+            ),
+        )
+
+        with mock.patch("importlib.import_module", return_value=fake_module):
+            items = provider.get_latest_news(limit=4)
+
+        self.assertGreaterEqual(len(items), 3)
+        self.assertEqual(items[0].source, "akshare-news")
+        self.assertTrue(any(item.source == "akshare-news-caixin" for item in items))
 
     def test_market_data_falls_back_to_backup_provider(self) -> None:
         state = load_portfolio_state(self.paths.portfolio_state_path)
@@ -363,10 +435,21 @@ class InvestmentBootstrapTests(unittest.TestCase):
         capabilities = build_provider_capabilities(self.paths)
         by_name = {item.name: item for item in capabilities}
 
-        self.assertFalse(by_name["akshare-etf"].enabled)
+        self.assertEqual(by_name["akshare-market"].enabled, importlib.util.find_spec("akshare") is not None)
+        self.assertEqual(by_name["akshare-news"].enabled, importlib.util.find_spec("akshare") is not None)
         self.assertFalse(by_name["efinance-fund"].enabled)
         self.assertTrue(by_name["mock-primary"].enabled)
         self.assertTrue(by_name["mock-backup"].enabled)
+
+    def test_default_chains_prioritize_akshare_when_available(self) -> None:
+        market_chain = build_default_market_data_chain(self.paths)
+        news_chain = build_default_news_data_chain(self.paths)
+        if importlib.util.find_spec("akshare") is not None:
+            self.assertEqual(market_chain[0].__class__.__name__, "AkshareMarketProvider")
+            self.assertEqual(news_chain[0].__class__.__name__, "AkshareNewsProvider")
+        else:
+            self.assertEqual(market_chain[0].__class__.__name__, "JsonFileMarketDataProvider")
+            self.assertEqual(news_chain[0].__class__.__name__, "JsonFileNewsDataProvider")
 
 
 if __name__ == "__main__":
