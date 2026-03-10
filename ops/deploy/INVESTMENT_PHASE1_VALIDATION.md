@@ -85,8 +85,8 @@ PYTHONPATH=src python3 -m investment_agent.main refresh-prices
 Result:
 - AKShare hybrid primary provider succeeds
 - 10 standardized price snapshots inserted into SQLite
-- ETF and open-fund assets use live AKShare data
-- unsupported assets such as `黄金` and `现金` fall back to local fixture quotes inside the primary provider
+- ETF, open-fund, and `黄金` assets use live AKShare / SGE data
+- `现金` remains on local fixture quotes inside the primary provider
 - provider fallback path is still covered by tests
 
 ### Provider capabilities
@@ -212,8 +212,8 @@ Result:
   at runtime.
 - The current monthly-review workflow is runnable and validated locally, but
   it now uses real AKShare adapters for ETF/open-fund price refresh and
-  keyword news collection, with local fixtures kept only for unsupported
-  assets such as cash and gold.
+  keyword news collection, plus real SGE gold pricing, with local fixtures
+  kept only for unsupported cash-like assets.
 - The current V2 batch-1 signal layer uses deterministic local research
   fixtures. This keeps test outputs stable while avoiding premature direct
   dependency on external trading repos.

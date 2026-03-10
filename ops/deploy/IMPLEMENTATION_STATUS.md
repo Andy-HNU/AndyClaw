@@ -33,7 +33,7 @@ tester, and acceptance layer.
 - CLI surface now includes `monthly-plan` and `monthly-review`
 - V2 batch-1 baseline now includes position/share tracking, asset research fixtures, and asset-level signal review
 - CLI surface now also includes `signal-review` for direct inspection of V2 signals
-- first real external adapter baseline now uses AKShare for ETF/open-fund prices and keyword news, with fixture fallback for unsupported assets like cash/gold
+- first real external adapter baseline now uses AKShare for ETF/open-fund prices, Shanghai Gold Exchange spot gold, and keyword news, with fixture fallback kept only for cash-like assets
 - local validation currently passes with `24` Python tests
 
 ## In Progress

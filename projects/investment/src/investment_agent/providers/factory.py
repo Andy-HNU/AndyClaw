@@ -111,12 +111,33 @@ class AkshareMarketProvider(MarketDataProvider, DependencyBackedCapability):
                 str(row["基金代码"]): row
                 for _, row in open_fund_df.iterrows()
             }
+            gold_histories: dict[str, Any] = {}
 
             results: list[MarketQuote] = []
             for asset_code in asset_codes:
                 asset = self.assets_by_code.get(asset_code)
                 if asset is None:
                     results.append(self._build_fixture_quote(asset_code))
+                    continue
+
+                if asset.asset_type == "commodity":
+                    symbol = asset.symbol or "Au99.99"
+                    if symbol not in gold_histories:
+                        gold_histories[symbol] = ak.spot_hist_sge(symbol=symbol)
+                    gold_df = gold_histories[symbol]
+                    latest_row = gold_df.iloc[-1]
+                    results.append(
+                        MarketQuote(
+                            asset_code=asset_code,
+                            source=self.source_name,
+                            trade_date=str(latest_row["date"]),
+                            close_price=float(latest_row["close"]),
+                            high_price=float(latest_row["high"]),
+                            low_price=float(latest_row["low"]),
+                            volume=None,
+                            fetched_at=str(latest_row["date"]),
+                        )
+                    )
                     continue
 
                 if asset.asset_type in {"etf", "index_fund", "thematic_fund"} and asset.symbol in etf_lookup:

@@ -47,6 +47,7 @@ Expected:
 - `inserted_rows` matches current asset count
 - `refresh_result.source` returned
 - if `akshare` is installed, the source should prefer the real provider before mock fallback
+- gold should refresh from the real commodity adapter rather than the local fixture
 
 ## Provider capabilities
 ```bash

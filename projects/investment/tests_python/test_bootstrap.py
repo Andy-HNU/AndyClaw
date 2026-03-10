@@ -160,6 +160,9 @@ class InvestmentBootstrapTests(unittest.TestCase):
     def test_akshare_market_provider_standardizes_etf_fund_and_fixture_quotes(self) -> None:
         provider = AkshareMarketProvider(self.paths)
         fake_module = types.SimpleNamespace(
+            spot_hist_sge=lambda symbol: pd.DataFrame(
+                [{"date": "2026-03-10", "open": 1139.1, "close": 1144.78, "low": 1132.1, "high": 1151.6}]
+            ),
             fund_etf_spot_em=lambda: pd.DataFrame(
                 [
                     {
@@ -191,7 +194,8 @@ class InvestmentBootstrapTests(unittest.TestCase):
         by_code = {item.asset_code: item for item in quotes}
         self.assertEqual(by_code["power_grid"].source, "akshare-market")
         self.assertAlmostEqual(by_code["广发中债7-10年"].close_price, 1.3451, places=4)
-        self.assertEqual(by_code["黄金"].source, "akshare-market-fixture")
+        self.assertEqual(by_code["黄金"].source, "akshare-market")
+        self.assertAlmostEqual(by_code["黄金"].close_price, 1144.78, places=2)
         self.assertEqual(by_code["现金"].close_price, 1.0)
 
     def test_akshare_news_provider_standardizes_keyword_and_macro_news(self) -> None:
