@@ -61,6 +61,16 @@ These are stable code entry points that OpenClaw should trigger, not rewrite:
 
 OpenClaw should treat them as callable interfaces.
 
+### Vision-first snapshot intake
+- `import-snapshot --portfolio-image <path> --gold-image <path>`
+- tries a vision model first
+- falls back to local OCR automatically
+- should be the default interface OpenClaw uses for screenshot parsing
+
+### OCR intake
+- `ocr-portfolio --portfolio-image <path> --gold-image <path>`
+- returns structured candidate holdings for later sync
+
 ## 3. Daily Screenshot Intake Protocol
 
 The user may provide one or more screenshots per day:
@@ -145,11 +155,12 @@ These are good candidates for future OpenClaw-controlled interfaces:
 
 ### Snapshot importer
 - dedicated ingestion interface for screenshot-derived payloads
-- should separate OCR extraction from portfolio validation
+- should separate vision/OCR extraction from portfolio validation
+- should be the default Telegram screenshot entry point
 
 ### Watchlist editor
 - maintain focus themes, sectors, or assets for reports and alerts
- - should eventually write a runtime `watchlists.json` based on the template
+- should eventually write a runtime `watchlists.json` based on the template
 
 ### Task runner
 - compose:
@@ -157,6 +168,13 @@ These are good candidates for future OpenClaw-controlled interfaces:
   - refresh prices
   - signal review
   - weekly/monthly report
+
+### Reminder scheduler
+- trigger daily reminder to ask the user for fresh screenshots
+- transport may be Telegram, but the investment system should only depend on
+  receiving local image paths or attachment payloads
+- future Telegram attachments should enter through `import-snapshot`
+- see `TELEGRAM_DAILY_CAPTURE_FLOW.md`
 
 ## 7. Keep Code-Owned
 

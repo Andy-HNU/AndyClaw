@@ -133,6 +133,21 @@ Expected:
 - `signals` returned
 - at least one signal includes severity/evidence fields
 
+## Snapshot import
+```bash
+cd /root/.openclaw/workspace/projects/investment
+PYTHONPATH=src python3 -m investment_agent.main import-snapshot --portfolio-image /root/usrFile/bb560d57ad2761440ddc9b4069e96e83.jpg --gold-image /root/usrFile/a9c549ccf141b31d97cd81b79aa2f98c.jpg
+```
+
+Expected:
+- `portfolio_snapshot.summary.total_value` is returned
+- `portfolio_snapshot.summary.cash_value` is returned
+- `gold_snapshot.asset.value` is returned
+- `gold_snapshot.asset.shares` is returned
+- `merged_portfolio.assets` is non-empty
+- `fallback_used` is present
+- `next_actions` includes `sync_to_portfolio_state_via_portfolio_editor`
+
 ## Test suite
 ```bash
 cd /root/.openclaw/workspace/projects/investment

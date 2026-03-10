@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 
 from investment_agent.config import discover_paths
 from investment_agent.db.repository import InvestmentRepository
@@ -12,6 +13,7 @@ from investment_agent.providers import (
     refresh_market_quotes,
 )
 from investment_agent.services.monthly_planner import build_monthly_plan
+from investment_agent.services.ocr_importer import build_ocr_portfolio_import
 from investment_agent.services.portfolio_analyzer import (
     build_portfolio_analysis,
     load_target_allocation,
@@ -20,6 +22,7 @@ from investment_agent.services.portfolio_analyzer import (
 from investment_agent.services.rebalance_recorder import persist_rebalance_review
 from investment_agent.services.rebalancing_engine import evaluate_rebalance
 from investment_agent.services.signal_engine import build_asset_signal_review, load_asset_research
+from investment_agent.services.snapshot_importer import build_snapshot_import
 from investment_agent.workflows.weekly_review import run_weekly_review
 from investment_agent.workflows.monthly_review import run_monthly_review
 
@@ -39,6 +42,12 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("signal-review", help="Generate asset-level V2 signal and position review")
     subparsers.add_parser("weekly-review", help="Run the weekly review workflow")
     subparsers.add_parser("monthly-review", help="Run the monthly review workflow")
+    import_parser = subparsers.add_parser("import-snapshot", help="Import portfolio screenshots with vision-first fallback")
+    import_parser.add_argument("--portfolio-image", help="Path to the holdings overview screenshot")
+    import_parser.add_argument("--gold-image", help="Path to the gold position screenshot")
+    ocr_parser = subparsers.add_parser("ocr-portfolio", help="OCR portfolio screenshots into structured candidates")
+    ocr_parser.add_argument("--portfolio-image", help="Path to the holdings overview screenshot")
+    ocr_parser.add_argument("--gold-image", help="Path to the gold position screenshot")
     return parser
 
 
@@ -193,6 +202,33 @@ def cmd_weekly_review() -> int:
     return 0
 
 
+def _resolve_cli_path(raw_path: str | None) -> Path | None:
+    if raw_path is None:
+        return None
+    candidate = Path(raw_path)
+    if candidate.is_absolute():
+        return candidate
+    return (discover_paths().project_root / candidate).resolve()
+
+
+def cmd_ocr_portfolio(portfolio_image: str | None, gold_image: str | None) -> int:
+    result = build_ocr_portfolio_import(
+        portfolio_image_path=_resolve_cli_path(portfolio_image),
+        gold_image_path=_resolve_cli_path(gold_image),
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_import_snapshot(portfolio_image: str | None, gold_image: str | None) -> int:
+    result = build_snapshot_import(
+        portfolio_image_path=_resolve_cli_path(portfolio_image),
+        gold_image_path=_resolve_cli_path(gold_image),
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
@@ -219,6 +255,10 @@ def main() -> int:
         return cmd_weekly_review()
     if args.command == "monthly-review":
         return cmd_monthly_review()
+    if args.command == "import-snapshot":
+        return cmd_import_snapshot(args.portfolio_image, args.gold_image)
+    if args.command == "ocr-portfolio":
+        return cmd_ocr_portfolio(args.portfolio_image, args.gold_image)
 
     parser.error(f"Unsupported command: {args.command}")
     return 2

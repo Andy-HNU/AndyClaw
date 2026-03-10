@@ -26,6 +26,13 @@ from investment_agent.providers import (
 )
 from investment_agent.providers.factory import AkshareMarketProvider, AkshareNewsProvider
 from investment_agent.services.monthly_planner import build_monthly_plan
+from investment_agent.services.ocr_importer import (
+    build_ocr_portfolio_import,
+    extract_ocr_lines,
+    ocr_backend_available,
+    parse_gold_snapshot,
+    parse_portfolio_snapshot,
+)
 from investment_agent.services.rebalance_recorder import persist_rebalance_review
 from investment_agent.services.portfolio_analyzer import (
     build_portfolio_analysis,
@@ -47,6 +54,7 @@ from investment_agent.services.signal_engine import (
     compute_volume_ratio,
     load_asset_research,
 )
+from investment_agent.services.snapshot_importer import build_snapshot_import
 from investment_agent.workflows.monthly_review import run_monthly_review
 from investment_agent.workflows.weekly_review import run_weekly_review
 
@@ -60,6 +68,14 @@ class InvestmentBootstrapTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.tempdir.cleanup()
+
+    @property
+    def portfolio_screenshot_path(self) -> Path:
+        return Path("/root/usrFile/bb560d57ad2761440ddc9b4069e96e83.jpg")
+
+    @property
+    def gold_screenshot_path(self) -> Path:
+        return Path("/root/usrFile/a9c549ccf141b31d97cd81b79aa2f98c.jpg")
 
     def test_initialize_and_seed_sqlite(self) -> None:
         state = load_portfolio_state(self.paths.portfolio_state_path)
@@ -496,6 +512,96 @@ class InvestmentBootstrapTests(unittest.TestCase):
         else:
             self.assertEqual(market_chain[0].__class__.__name__, "JsonFileMarketDataProvider")
             self.assertEqual(news_chain[0].__class__.__name__, "JsonFileNewsDataProvider")
+
+    @unittest.skipUnless(ocr_backend_available(), "rapidocr_onnxruntime is required for OCR tests")
+    def test_parse_gold_snapshot_from_sample_image(self) -> None:
+        if not self.gold_screenshot_path.exists():
+            self.skipTest("gold screenshot fixture not present in /root/usrFile")
+
+        parsed = parse_gold_snapshot(extract_ocr_lines(self.gold_screenshot_path))
+
+        self.assertEqual(parsed["snapshot_type"], "gold_position")
+        self.assertEqual(parsed["asset"]["category"], "gold")
+        self.assertAlmostEqual(parsed["asset"]["shares"], 12.1713, places=4)
+        self.assertAlmostEqual(parsed["asset"]["value"], 14077.33, places=2)
+        self.assertAlmostEqual(parsed["asset"]["average_cost"], 1124.36, places=2)
+        self.assertAlmostEqual(parsed["asset"]["profit"], 392.45, places=2)
+        self.assertAlmostEqual(parsed["metrics"]["current_price"], 1156.60, places=2)
+
+    @unittest.skipUnless(ocr_backend_available(), "rapidocr_onnxruntime is required for OCR tests")
+    def test_parse_portfolio_snapshot_from_sample_image(self) -> None:
+        if not self.portfolio_screenshot_path.exists():
+            self.skipTest("portfolio screenshot fixture not present in /root/usrFile")
+
+        parsed = parse_portfolio_snapshot(extract_ocr_lines(self.portfolio_screenshot_path))
+
+        self.assertEqual(parsed["snapshot_type"], "portfolio_overview")
+        self.assertAlmostEqual(parsed["summary"]["total_value"], 35805.93, places=2)
+        self.assertAlmostEqual(parsed["summary"]["cash_value"], 9938.51, places=2)
+        self.assertGreaterEqual(parsed["summary"]["holding_count"], 7)
+        by_name = {item["name"]: item for item in parsed["holdings"]}
+        self.assertAlmostEqual(by_name["天弘中证电网设备主题指数C"]["value"], 2364.57, places=2)
+        self.assertAlmostEqual(by_name["广发中债7-10年期国开行债券指数E"]["value"], 7020.93, places=2)
+        self.assertAlmostEqual(by_name["余额宝"]["value"], 9938.51, places=2)
+
+    @unittest.skipUnless(ocr_backend_available(), "rapidocr_onnxruntime is required for OCR tests")
+    def test_build_ocr_portfolio_import_merges_two_sample_images(self) -> None:
+        if not self.gold_screenshot_path.exists() or not self.portfolio_screenshot_path.exists():
+            self.skipTest("OCR screenshot fixtures not present in /root/usrFile")
+
+        result = build_ocr_portfolio_import(
+            portfolio_image_path=self.portfolio_screenshot_path,
+            gold_image_path=self.gold_screenshot_path,
+        )
+
+        self.assertEqual(result["status"], "success")
+        self.assertIsNotNone(result["portfolio_snapshot"])
+        self.assertIsNotNone(result["gold_snapshot"])
+        self.assertGreaterEqual(len(result["merged_portfolio"]["assets"]), 8)
+        self.assertAlmostEqual(result["merged_portfolio"]["total_value"], 49883.26, places=2)
+        self.assertIn("sync_to_portfolio_state_via_portfolio_editor", result["next_actions"])
+
+    def test_snapshot_import_prefers_vision_client_when_available(self) -> None:
+        class FakeVisionClient:
+            def import_snapshot(self, portfolio_image_path: Path | None = None, gold_image_path: Path | None = None) -> dict[str, object]:
+                return {
+                    "status": "success",
+                    "source": "vision-model",
+                    "portfolio_snapshot": {"summary": {"total_value": 123.45}},
+                    "gold_snapshot": None,
+                    "merged_portfolio": {"updated_at": "", "assets": [], "total_value": 123.45},
+                    "next_actions": ["sync_to_portfolio_state_via_portfolio_editor"],
+                }
+
+        result = build_snapshot_import(
+            portfolio_image_path=self.portfolio_screenshot_path,
+            gold_image_path=self.gold_screenshot_path,
+            vision_client=FakeVisionClient(),
+        )
+
+        self.assertEqual(result["source"], "vision-model")
+        self.assertFalse(result["fallback_used"])
+        self.assertAlmostEqual(result["merged_portfolio"]["total_value"], 123.45, places=2)
+
+    @unittest.skipUnless(ocr_backend_available(), "rapidocr_onnxruntime is required for OCR fallback tests")
+    def test_snapshot_import_falls_back_to_ocr_when_vision_client_fails(self) -> None:
+        if not self.gold_screenshot_path.exists() or not self.portfolio_screenshot_path.exists():
+            self.skipTest("OCR screenshot fixtures not present in /root/usrFile")
+
+        class FailingVisionClient:
+            def import_snapshot(self, portfolio_image_path: Path | None = None, gold_image_path: Path | None = None) -> dict[str, object]:
+                raise RuntimeError("vision parser timeout")
+
+        result = build_snapshot_import(
+            portfolio_image_path=self.portfolio_screenshot_path,
+            gold_image_path=self.gold_screenshot_path,
+            vision_client=FailingVisionClient(),
+        )
+
+        self.assertEqual(result["source"], "ocr-fallback")
+        self.assertTrue(result["fallback_used"])
+        self.assertIn("vision parser timeout", result["fallback_reason"])
+        self.assertAlmostEqual(result["merged_portfolio"]["total_value"], 49883.26, places=2)
 
 
 if __name__ == "__main__":

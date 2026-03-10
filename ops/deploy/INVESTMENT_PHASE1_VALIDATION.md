@@ -22,6 +22,7 @@ Current runnable slice for the investment project:
 - first real external market/news adapter baseline
 - weekly review workflow baseline
 - stable report schema baseline
+- screenshot import baseline with vision-first orchestration and OCR fallback
 - extended CLI
 - extended tests
 
@@ -38,6 +39,8 @@ Current runnable slice for the investment project:
 - `projects/investment/src/investment_agent/services/rebalance_recorder.py`
 - `projects/investment/src/investment_agent/services/report_generator.py`
 - `projects/investment/src/investment_agent/services/signal_engine.py`
+- `projects/investment/src/investment_agent/services/ocr_importer.py`
+- `projects/investment/src/investment_agent/services/snapshot_importer.py`
 - `projects/investment/src/investment_agent/workflows/weekly_review.py`
 - `projects/investment/src/investment_agent/workflows/monthly_review.py`
 - `projects/investment/tests_python/test_bootstrap.py`
@@ -214,6 +217,26 @@ Result:
   - `news_summary`
   - `watchlist`
 
+### Snapshot import
+```bash
+cd /root/.openclaw/workspace/projects/investment
+PYTHONPATH=src python3 -m investment_agent.main import-snapshot --portfolio-image /root/usrFile/bb560d57ad2761440ddc9b4069e96e83.jpg --gold-image /root/usrFile/a9c549ccf141b31d97cd81b79aa2f98c.jpg
+```
+
+Result:
+- current environment falls back to local OCR because no vision client is configured
+- the import still returns a structured candidate payload with:
+  - holdings overview total value: `35805.93`
+  - cash value: `9938.51`
+  - gold total value: `14077.33`
+  - gold shares: `12.1713`
+- merged candidate portfolio total is `49883.26`
+- output records:
+  - `source = ocr-fallback`
+  - `fallback_used = true`
+  - `fallback_reason = vision client unavailable`
+- the intended next step is to route the candidate through `portfolio_editor`
+
 ### Tests
 ```bash
 cd /root/.openclaw/workspace/projects/investment
@@ -221,7 +244,7 @@ PYTHONPATH=src python3 -m unittest discover -s tests_python -v
 ```
 
 Result:
-- 26 tests passed
+- 31 tests passed
 
 ## Notes
 - The spec-style ratio test uses synthetic data from the test doc, not the
@@ -241,6 +264,9 @@ Result:
 - The current V2 batch-1 signal layer uses deterministic local research
   fixtures. This keeps test outputs stable while avoiding premature direct
   dependency on external trading repos.
+- The current snapshot import path is deliberately layered: model vision is
+  preferred when configured, but local OCR remains the stable fallback so
+  OpenClaw can still operate without online vision dependencies.
 - The current report schema is stable enough for OpenClaw/runtime consumption,
   but should still be treated as a baseline rather than a frozen public API.
 - Current phase naming is now broader than the original document title: the

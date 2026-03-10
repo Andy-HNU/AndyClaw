@@ -58,3 +58,13 @@
 - 以资产 code 或主题定位研究对象
 - 更新 `asset_research.json`
 - 说明更新后该资产可进入研究摘要与估值类信号
+
+## 用例 8
+用户说：我通过 Telegram 发了两张图给你，一张总持仓，一张黄金，帮我同步今天仓位。
+
+### 预期
+- 先调用 `snapshot_importer`
+- 默认经由 `import-snapshot`
+- 再调用 `portfolio_editor`
+- 若 OCR 缺字段，则返回待确认项
+- 若 OCR 结果可接受，则同步快照并继续走刷新价格与报告流程

@@ -1,7 +1,7 @@
 # Implementation Status
 
 ## Date
-2026-03-10
+2026-03-11
 
 ## Objective
 Drive the investment project from document-only planning toward a Codex-led
@@ -37,19 +37,23 @@ tester, and acceptance layer.
 - weekly review workflow is now implemented and persists `weekly` reports
 - report schema baseline is now documented and stabilized around `schema_version` and `sections`
 - OpenClaw playbooks are now aligned with the real CLI surface for daily, weekly, and monthly review
-- local validation currently passes with `26` Python tests
+- screenshot import baseline is now implemented with a vision-first entry point and local OCR fallback
+- OpenClaw now has dedicated runtime-facing skill surfaces for portfolio editing, research editing, and screenshot import
+- Telegram daily capture flow is now documented as a transport-layer integration path into `import-snapshot`
+- local validation currently passes with `31` Python tests
 
 ## In Progress
 - move from mock-only market/news provider execution toward real external adapters
 - keep validation docs and OpenClaw acceptance commands aligned with the expanded CLI surface
 - decide whether the monthly-review baseline should be committed as the next formal phase checkpoint
+- keep the vision client optional so local OCR remains a deterministic fallback path
 
 ## Next Steps
 1. decide whether to replace the remaining cash-like fixture path with a more explicit non-market cash model
 2. evaluate whether `efinance` is still worth keeping as a secondary real provider path
 3. extend report schema stability from the current baseline into more formal consumer contracts
 4. expand OpenClaw runtime acceptance from command-level checks into reusable replay scripts
-5. record the current phase-1 to phase-5 baseline as a formal committed checkpoint
+5. connect future Telegram reminder / attachment delivery to the new `import-snapshot` entry point
 
 ## Do Not Forget
 - do not import ZIP runtime memory/inbox content into production blindly
