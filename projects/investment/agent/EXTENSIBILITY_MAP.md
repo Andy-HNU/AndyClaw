@@ -60,6 +60,7 @@ or Codex-side changes rather than a dedicated OpenClaw editing skill.
 - extensibility status:
   - data-driven
   - now should be handled via `skills/portfolio_editor/skill.md`
+  - production should be allowed to start from `system/portfolio_state.template.json`
 
 ### Previous portfolio snapshot
 - source of truth:
@@ -74,6 +75,7 @@ or Codex-side changes rather than a dedicated OpenClaw editing skill.
 - extensibility status:
   - data-driven
   - currently not naturally editable through a dedicated skill
+  - should get a future `research_editor` interface
 
 ## 3. Hard-Coded In Code Today
 
@@ -121,6 +123,8 @@ These are the best candidates for future OpenClaw-driven extensibility.
 - add/update/remove holdings
 - validate required fields
 - explain whether real providers support the asset
+- support screenshot-driven `sync_snapshot`
+- support resetting test portfolio into empty production state
 
 ### Research object editing
 - add sector
@@ -130,6 +134,12 @@ These are the best candidates for future OpenClaw-driven extensibility.
 - add hot topics
 
 This likely needs a second skill later, e.g. `research_editor`.
+
+### Daily screenshot intake
+- ingest total holdings screenshots
+- ingest separate gold screenshots
+- convert OCR results into structured portfolio objects
+- validate before overriding the current snapshot
 
 ### Watchlists and custom report focus
 - “本周重点盯着机器人和黄金”

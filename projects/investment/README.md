@@ -15,6 +15,12 @@ Current implemented baseline:
 - stable report schema baseline
 - CLI entry points
 - unittest coverage for the first slice
+- OpenClaw-facing portfolio editing skill and control-surface documentation
+
+Production note:
+- `system/portfolio_state.json` can contain test sample holdings in the repo
+- real usage may start from `system/portfolio_state.template.json`
+- OpenClaw should update holdings through the portfolio editing control flow, not by assuming the sample data is authoritative
 
 Quick start:
 
