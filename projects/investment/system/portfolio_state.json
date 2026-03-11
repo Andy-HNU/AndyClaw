@@ -1,22 +1,12 @@
 {
-  "updated_at": "2026-03",
+  "updated_at": "2026-03-11",
   "assets": [
-    {
-      "name": "黄金",
-      "category": "gold",
-      "asset_type": "commodity",
-      "symbol": "Au99.99",
-      "value": 13902.91,
-      "shares": 20.0295,
-      "average_cost": 683.28,
-      "profit": 217.06
-    },
     {
       "name": "广发中债7-10年",
       "category": "bond",
       "asset_type": "bond_fund",
       "symbol": "003376",
-      "value": 7033.52,
+      "value": 7020.93,
       "shares": 6742.2546,
       "average_cost": 1.021
     },
@@ -25,46 +15,16 @@
       "category": "bond",
       "asset_type": "bond_fund",
       "symbol": "007194",
-      "value": 5014.01,
+      "value": 5015.24,
       "shares": 4937.4791,
       "average_cost": 1.008
-    },
-    {
-      "name": "电网指数",
-      "category": "stock",
-      "asset_type": "etf",
-      "symbol": "561200",
-      "value": 2310.36,
-      "shares": 2050.0089,
-      "average_cost": 1.03,
-      "theme": "power_grid"
-    },
-    {
-      "name": "高端装备ETF",
-      "category": "stock",
-      "asset_type": "etf",
-      "symbol": "516320",
-      "value": 1992.86,
-      "shares": 2000.8635,
-      "average_cost": 0.972,
-      "theme": "advanced_manufacturing"
-    },
-    {
-      "name": "有色金属ETF",
-      "category": "stock",
-      "asset_type": "etf",
-      "symbol": "512400",
-      "value": 1464.95,
-      "shares": 1140.9268,
-      "average_cost": 1.221,
-      "theme": "metals"
     },
     {
       "name": "科创50",
       "category": "stock",
       "asset_type": "index_fund",
       "symbol": "588000",
-      "value": 3381.86,
+      "value": 3415.05,
       "shares": 4011.6963,
       "average_cost": 0.865,
       "theme": "broad_index"
@@ -74,7 +34,7 @@
       "category": "stock",
       "asset_type": "thematic_fund",
       "symbol": "159819",
-      "value": 2278.68,
+      "value": 2310.78,
       "shares": 1686.6617,
       "average_cost": 1.168,
       "theme": "ai"
@@ -84,18 +44,48 @@
       "category": "stock",
       "asset_type": "thematic_fund",
       "symbol": "562500",
-      "value": 2274.56,
+      "value": 2310.51,
       "shares": 1916.2258,
       "average_cost": 1.102,
       "theme": "robotics"
+    },
+    {
+      "name": "高端装备ETF",
+      "category": "stock",
+      "asset_type": "etf",
+      "symbol": "516320",
+      "value": 2009.0,
+      "shares": 2000.8635,
+      "average_cost": 0.972,
+      "theme": "advanced_manufacturing"
+    },
+    {
+      "name": "电网指数",
+      "category": "stock",
+      "asset_type": "etf",
+      "symbol": "561200",
+      "value": 2364.57,
+      "shares": 2050.0089,
+      "average_cost": 1.03,
+      "theme": "power_grid"
+    },
+    {
+      "name": "有色金属ETF",
+      "category": "stock",
+      "asset_type": "etf",
+      "symbol": "512400",
+      "value": 1421.34,
+      "shares": 1140.9268,
+      "average_cost": 1.221,
+      "theme": "metals"
     },
     {
       "name": "现金",
       "category": "cash",
       "asset_type": "cash",
       "symbol": "CNY",
-      "value": 12000,
-      "shares": 12000,
+      "value": 9938.79,
+      "shares": 9938.79,
       "average_cost": 1.0
     }
   ]

@@ -1,22 +1,23 @@
 {
-  "updated_at": "2026-02",
+  "updated_at": "2026-03",
   "assets": [
     {
       "name": "黄金",
       "category": "gold",
       "asset_type": "commodity",
       "symbol": "Au99.99",
-      "value": 13586.56,
-      "shares": 19.5295,
-      "average_cost": 683.28
+      "value": 13902.91,
+      "shares": 20.0295,
+      "average_cost": 683.28,
+      "profit": 217.06
     },
     {
       "name": "广发中债7-10年",
       "category": "bond",
       "asset_type": "bond_fund",
       "symbol": "003376",
-      "value": 6812.41,
-      "shares": 6542.2546,
+      "value": 7033.52,
+      "shares": 6742.2546,
       "average_cost": 1.021
     },
     {
@@ -24,8 +25,8 @@
       "category": "bond",
       "asset_type": "bond_fund",
       "symbol": "007194",
-      "value": 4860.89,
-      "shares": 4787.4791,
+      "value": 5014.01,
+      "shares": 4937.4791,
       "average_cost": 1.008
     },
     {
@@ -33,8 +34,8 @@
       "category": "stock",
       "asset_type": "etf",
       "symbol": "561200",
-      "value": 2145.40,
-      "shares": 1950.0089,
+      "value": 2310.36,
+      "shares": 2050.0089,
       "average_cost": 1.03,
       "theme": "power_grid"
     },
@@ -43,8 +44,8 @@
       "category": "stock",
       "asset_type": "etf",
       "symbol": "516320",
-      "value": 1869.78,
-      "shares": 1920.8635,
+      "value": 1992.86,
+      "shares": 2000.8635,
       "average_cost": 0.972,
       "theme": "advanced_manufacturing"
     },
@@ -53,8 +54,8 @@
       "category": "stock",
       "asset_type": "etf",
       "symbol": "512400",
-      "value": 1352.60,
-      "shares": 1085.9268,
+      "value": 1464.95,
+      "shares": 1140.9268,
       "average_cost": 1.221,
       "theme": "metals"
     },
@@ -63,8 +64,8 @@
       "category": "stock",
       "asset_type": "index_fund",
       "symbol": "588000",
-      "value": 3240.25,
-      "shares": 3911.6963,
+      "value": 3381.86,
+      "shares": 4011.6963,
       "average_cost": 0.865,
       "theme": "broad_index"
     },
@@ -73,8 +74,8 @@
       "category": "stock",
       "asset_type": "thematic_fund",
       "symbol": "159819",
-      "value": 2036.77,
-      "shares": 1586.6617,
+      "value": 2278.68,
+      "shares": 1686.6617,
       "average_cost": 1.168,
       "theme": "ai"
     },
@@ -83,8 +84,8 @@
       "category": "stock",
       "asset_type": "thematic_fund",
       "symbol": "562500",
-      "value": 2128.12,
-      "shares": 1866.2258,
+      "value": 2274.56,
+      "shares": 1916.2258,
       "average_cost": 1.102,
       "theme": "robotics"
     },
@@ -93,8 +94,8 @@
       "category": "cash",
       "asset_type": "cash",
       "symbol": "CNY",
-      "value": 13800,
-      "shares": 13800,
+      "value": 12000,
+      "shares": 12000,
       "average_cost": 1.0
     }
   ]
