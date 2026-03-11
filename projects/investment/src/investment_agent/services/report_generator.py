@@ -88,14 +88,16 @@ def generate_daily_report(
             intraday_lines.append(f"- {item['fund_name']}: 盘中代理不可用（{item.get('reason', 'unknown')}）")
             continue
         band = item["expected_close_band"]
+        evidence = item.get("evidence", {})
         intraday_lines.append(
             (
-                f"- {item['fund_name']}: proxy_nav_now={item['proxy_nav_now']:.4f}, "
-                f"expected_close_band={band['low']:.4f}~{band['high']:.4f}, "
-                f"volume_state={item['volume_state']}, "
-                f"sentiment_label={item['sentiment_label']}, "
-                f"confidence={item['confidence']['label']}({item['confidence']['score']:.2f}), "
-                f"suggested_action={item['suggested_action']}"
+                f"- {item['fund_name']}: 结论={item.get('sentiment_wording', '中性观察')}; "
+                f"代理净值={item['proxy_nav_now']:.4f}, 收盘区间={band['low']:.4f}~{band['high']:.4f}; "
+                f"量能={item['volume_state']}, 趋势={float(evidence.get('price_trend_pct', 0.0)):.2f}%, "
+                f"振幅={float(evidence.get('amplitude_pct', 0.0)):.2f}%, 回撤={float(evidence.get('drawdown_from_high_pct', 0.0)):.2f}%; "
+                f"支撑位={float(item.get('support_level') or 0.0):.4f}, "
+                f"压力/突破位={float(item.get('resistance_level') or 0.0):.4f}/{float(item.get('breakout_level') or 0.0):.4f}; "
+                f"策略={item['suggested_action']}（跌破支撑谨慎，放量突破再跟随）"
             )
         )
     if not intraday_lines:

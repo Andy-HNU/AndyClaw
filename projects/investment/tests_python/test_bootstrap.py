@@ -678,6 +678,9 @@ class InvestmentBootstrapTests(unittest.TestCase):
         self.assertEqual(len(by_code["011609"]["driver_breakdown"]), 1)
         self.assertEqual(by_code["012734"]["data_quality"], "real")
         self.assertIsNotNone(by_code["012734"]["expected_close_band"])
+        self.assertIsNotNone(by_code["012734"]["support_level"])
+        self.assertIsNotNone(by_code["012734"]["resistance_level"])
+        self.assertIn("support_resistance_basis", by_code["012734"]["evidence"])
 
     def test_intraday_sentiment_classification_outputs_evidence(self) -> None:
         panic = classify_intraday_sentiment(
@@ -688,19 +691,22 @@ class InvestmentBootstrapTests(unittest.TestCase):
                 "drawdown_from_high_pct": -2.4,
             }
         )
-        chase = classify_intraday_sentiment(
+        breakout = classify_intraday_sentiment(
             {
-                "price_trend_pct": 1.8,
-                "volume_ratio": 1.5,
-                "amplitude_pct": 2.6,
-                "drawdown_from_high_pct": -0.4,
+                "price_trend_pct": 2.1,
+                "volume_ratio": 1.75,
+                "amplitude_pct": 2.4,
+                "drawdown_from_high_pct": -0.2,
             }
         )
 
         self.assertEqual(panic["label"], "intraday_panic_selloff")
         self.assertIn("matched_rules", panic["evidence"])
-        self.assertEqual(chase["label"], "intraday_momentum_chase")
-        self.assertIn("price_trend_pct", chase["evidence"])
+        self.assertIn("close_position_in_range", panic["evidence"])
+        self.assertIn("breakout_distance_pct", panic["evidence"])
+        self.assertIn("confidence_score", panic["evidence"])
+        self.assertEqual(breakout["label"], "intraday_volume_breakout")
+        self.assertIn("price_trend_pct", breakout["evidence"])
 
     def test_intraday_threshold_sanity_labels_are_distinguishable(self) -> None:
         config = load_portfolio_state(self.paths.portfolio_state_path)
@@ -710,6 +716,37 @@ class InvestmentBootstrapTests(unittest.TestCase):
         self.assertEqual(labels["washout"], "intraday_distribution_or_washout")
         self.assertEqual(labels["chase"], "intraday_momentum_chase")
         self.assertEqual(labels["chop"], "intraday_range_chop")
+        self.assertEqual(labels["drift_down"], "intraday_low_volume_drift_down")
+        self.assertEqual(labels["rebound"], "intraday_low_volume_rebound")
+        self.assertEqual(labels["breakout"], "intraday_volume_breakout")
+        self.assertEqual(labels["stall"], "intraday_high_level_stall")
+
+    def test_intraday_sentiment_boundary_scenarios_cover_all_8_classes(self) -> None:
+        scenarios = {
+            "intraday_momentum_chase": {"price_trend_pct": 1.25, "volume_ratio": 1.36, "amplitude_pct": 1.8, "drawdown_from_high_pct": -0.4},
+            "intraday_panic_selloff": {"price_trend_pct": -2.05, "volume_ratio": 1.62, "amplitude_pct": 3.5, "drawdown_from_high_pct": -1.7},
+            "intraday_distribution_or_washout": {"price_trend_pct": -0.5, "volume_ratio": 1.4, "amplitude_pct": 3.2, "drawdown_from_high_pct": -2.0},
+            "intraday_range_chop": {"price_trend_pct": 0.35, "volume_ratio": 1.0, "amplitude_pct": 1.3, "drawdown_from_high_pct": -0.6},
+            "intraday_low_volume_drift_down": {"price_trend_pct": -0.8, "volume_ratio": 0.85, "amplitude_pct": 1.2, "drawdown_from_high_pct": -1.0},
+            "intraday_low_volume_rebound": {"price_trend_pct": 0.6, "volume_ratio": 0.92, "amplitude_pct": 1.6, "drawdown_from_high_pct": -0.3},
+            "intraday_volume_breakout": {"price_trend_pct": 2.0, "volume_ratio": 1.7, "amplitude_pct": 2.2, "drawdown_from_high_pct": -0.2},
+            "intraday_high_level_stall": {"price_trend_pct": 1.05, "volume_ratio": 1.05, "amplitude_pct": 1.4, "drawdown_from_high_pct": -1.0},
+        }
+        for expected_label, metrics in scenarios.items():
+            with self.subTest(expected_label=expected_label):
+                result = classify_intraday_sentiment(metrics)
+                self.assertEqual(result["label"], expected_label)
+
+    def test_intraday_sentiment_insufficient_evidence_goes_neutral_observe(self) -> None:
+        result = classify_intraday_sentiment(
+            {
+                "price_trend_pct": 0.05,
+                "volume_ratio": 1.02,
+                "amplitude_pct": 0.3,
+                "drawdown_from_high_pct": -0.05,
+            }
+        )
+        self.assertEqual(result["label"], "intraday_neutral_observe")
 
     def test_intraday_proxy_review_covers_all_mapped_portfolio_funds(self) -> None:
         current_state = load_portfolio_state(self.paths.portfolio_state_path)
@@ -783,6 +820,10 @@ class InvestmentBootstrapTests(unittest.TestCase):
         self.assertIn("provider_notes", latest_report["content_json"])
         self.assertIn("data_quality", latest_report["content_json"]["summary"])
         self.assertEqual(result["intraday_market"]["status"], "available")
+        self.assertNotIn("sentiment_label=", latest_report["content_md"])
+        self.assertIn("结论=", latest_report["content_md"])
+        self.assertIn("支撑位=", latest_report["content_md"])
+        self.assertIn("压力/突破位=", latest_report["content_md"])
 
     def test_daily_chart_renderer_outputs_png_when_history_is_available(self) -> None:
         chart = render_daily_price_chart(
