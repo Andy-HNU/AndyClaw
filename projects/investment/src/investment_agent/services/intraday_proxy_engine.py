@@ -7,7 +7,18 @@ from typing import Any
 from investment_agent.models.portfolio import PortfolioState
 
 
-SUPPORTED_FUNDS = ("012734", "011609")
+DEFAULT_SENTIMENT_THRESHOLDS: dict[str, float] = {
+    "panic_price_trend_max": -2.0,
+    "panic_volume_ratio_min": 1.6,
+    "panic_drawdown_max": -1.6,
+    "washout_amplitude_min": 3.0,
+    "washout_volume_ratio_min": 1.35,
+    "washout_price_trend_max": -0.8,
+    "washout_drawdown_max": -1.2,
+    "chase_price_trend_min": 1.2,
+    "chase_volume_ratio_min": 1.35,
+    "chase_drawdown_min": -1.0,
+}
 
 
 def _round_or_none(value: float | None, digits: int = 4) -> float | None:
@@ -76,11 +87,15 @@ def load_intraday_realtime_feed(path: Path) -> dict[str, Any]:
     return dict(payload)
 
 
-def classify_intraday_sentiment(metrics: dict[str, Any]) -> dict[str, Any]:
+def classify_intraday_sentiment(
+    metrics: dict[str, Any],
+    thresholds: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     price_trend = float(metrics.get("price_trend_pct", 0.0))
     volume_ratio = float(metrics.get("volume_ratio", 1.0))
     amplitude_pct = float(metrics.get("amplitude_pct", 0.0))
     drawdown_pct = float(metrics.get("drawdown_from_high_pct", 0.0))
+    active_thresholds = {**DEFAULT_SENTIMENT_THRESHOLDS, **(thresholds or {})}
 
     label = "intraday_range_chop"
     probability = 0.52
@@ -88,19 +103,34 @@ def classify_intraday_sentiment(metrics: dict[str, Any]) -> dict[str, Any]:
     suggested_action = "以观察为主，等待方向确认。"
     matched_rules = ["baseline_range"]
 
-    if price_trend <= -2.0 and volume_ratio >= 1.6 and drawdown_pct <= -1.6:
+    if (
+        price_trend <= float(active_thresholds["panic_price_trend_max"])
+        and volume_ratio >= float(active_thresholds["panic_volume_ratio_min"])
+        and drawdown_pct <= float(active_thresholds["panic_drawdown_max"])
+    ):
         label = "intraday_panic_selloff"
         probability = min(0.92, 0.58 + abs(price_trend) * 0.08 + max(volume_ratio - 1.0, 0.0) * 0.12)
         wording = "盘中更像恐慌性抛售，尾盘仍可能继续放大波动。"
         suggested_action = "避免逆势加仓，优先等待抛压缓和。"
         matched_rules = ["price_breakdown", "heavy_volume", "deep_drawdown"]
-    elif amplitude_pct >= 3.0 and volume_ratio >= 1.35 and (price_trend <= -0.8 or drawdown_pct <= -1.2):
+    elif (
+        amplitude_pct >= float(active_thresholds["washout_amplitude_min"])
+        and volume_ratio >= float(active_thresholds["washout_volume_ratio_min"])
+        and (
+            price_trend <= float(active_thresholds["washout_price_trend_max"])
+            or drawdown_pct <= float(active_thresholds["washout_drawdown_max"])
+        )
+    ):
         label = "intraday_distribution_or_washout"
         probability = min(0.86, 0.55 + amplitude_pct * 0.05 + max(volume_ratio - 1.0, 0.0) * 0.08)
         wording = "盘中更像派发或洗盘，方向尚未完全确认。"
         suggested_action = "控制追单，等待尾盘资金回流或跌幅收敛。"
         matched_rules = ["wide_range", "elevated_volume", "weak_close_shape"]
-    elif price_trend >= 1.2 and volume_ratio >= 1.35 and drawdown_pct >= -1.0:
+    elif (
+        price_trend >= float(active_thresholds["chase_price_trend_min"])
+        and volume_ratio >= float(active_thresholds["chase_volume_ratio_min"])
+        and drawdown_pct >= float(active_thresholds["chase_drawdown_min"])
+    ):
         label = "intraday_momentum_chase"
         probability = min(0.88, 0.53 + price_trend * 0.09 + max(volume_ratio - 1.0, 0.0) * 0.07)
         wording = "盘中更像资金追涨，后续要防止高位回吐。"
@@ -118,6 +148,7 @@ def classify_intraday_sentiment(metrics: dict[str, Any]) -> dict[str, Any]:
             "amplitude_pct": round(amplitude_pct, 4),
             "drawdown_from_high_pct": round(drawdown_pct, 4),
             "matched_rules": matched_rules,
+            "thresholds": active_thresholds,
         },
     }
 
@@ -194,32 +225,38 @@ def _aggregate_metrics(driver_breakdown: list[dict[str, Any]]) -> dict[str, floa
 def build_intraday_proxy_review(
     portfolio_state: PortfolioState,
     config_path: Path,
-    realtime_path: Path,
+    realtime_path: Path | None = None,
+    realtime_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     config_payload = load_intraday_proxy_config(config_path)
     funds_config = dict(config_payload.get("funds") or {})
+    sentiment_thresholds = dict(config_payload.get("sentiment_thresholds") or {})
     assets_by_symbol = {str(asset.symbol): asset for asset in portfolio_state.assets if asset.symbol}
+    mapped_fund_codes = [
+        str(asset.symbol)
+        for asset in portfolio_state.assets
+        if asset.symbol and str(asset.symbol) in funds_config
+    ]
 
-    if not Path(realtime_path).exists():
-        funds = [
-            _build_unavailable_fund(
-                fund_code=fund_code,
-                fund_name=str(funds_config.get(fund_code, {}).get("fund_name") or fund_code),
-                reason="realtime_feed_missing",
-                data_quality="fallback",
-            )
-            for fund_code in SUPPORTED_FUNDS
-            if fund_code in funds_config
-        ]
-        return {
-            "status": "unavailable",
-            "reason": "realtime_feed_missing",
-            "data_quality": "fallback",
-            "as_of": None,
-            "funds": funds,
-        }
-
-    realtime_payload = load_intraday_realtime_feed(realtime_path)
+    if realtime_payload is None:
+        if realtime_path is None or not Path(realtime_path).exists():
+            funds = [
+                _build_unavailable_fund(
+                    fund_code=fund_code,
+                    fund_name=str(funds_config.get(fund_code, {}).get("fund_name") or fund_code),
+                    reason="realtime_feed_missing",
+                    data_quality="fallback",
+                )
+                for fund_code in mapped_fund_codes
+            ]
+            return {
+                "status": "unavailable",
+                "reason": "realtime_feed_missing",
+                "data_quality": "fallback",
+                "as_of": None,
+                "funds": funds,
+            }
+        realtime_payload = load_intraday_realtime_feed(realtime_path)
     if str(realtime_payload.get("status", "success")) != "success":
         reason = str(realtime_payload.get("reason") or "realtime_feed_unavailable")
         funds = [
@@ -229,8 +266,7 @@ def build_intraday_proxy_review(
                 reason=reason,
                 data_quality=str(realtime_payload.get("data_quality") or "fallback"),
             )
-            for fund_code in SUPPORTED_FUNDS
-            if fund_code in funds_config
+            for fund_code in mapped_fund_codes
         ]
         return {
             "status": "unavailable",
@@ -247,7 +283,7 @@ def build_intraday_proxy_review(
     data_quality = str(realtime_payload.get("data_quality") or "mixed")
     funds: list[dict[str, Any]] = []
 
-    for fund_code in SUPPORTED_FUNDS:
+    for fund_code in mapped_fund_codes:
         config_item = funds_config.get(fund_code)
         if config_item is None:
             continue
@@ -298,7 +334,7 @@ def build_intraday_proxy_review(
             + min(len(breakdown), 3) * 0.08
             + (0.08 if proxy_method == "holdings" else 0.0),
         )
-        sentiment = classify_intraday_sentiment(metrics)
+        sentiment = classify_intraday_sentiment(metrics, sentiment_thresholds)
         funds.append(
             {
                 "fund_code": fund_code,

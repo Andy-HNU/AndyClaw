@@ -10,6 +10,11 @@ from typing import Any
 
 from investment_agent.config import ProjectPaths
 from investment_agent.models.portfolio import Asset, PortfolioState
+from investment_agent.providers.intraday_data import (
+    AkshareIntradayDataProvider,
+    IntradayDataProvider,
+    JsonFileIntradayDataProvider,
+)
 from investment_agent.providers.market_data import (
     JsonFileMarketDataProvider,
     MarketDataProvider,
@@ -294,6 +299,15 @@ def build_provider_capabilities(paths: ProjectPaths) -> list[ProviderCapability]
         AkshareNewsProvider(paths).capability(),
         EFinanceFundProvider().capability(),
         ProviderCapability(
+            name="akshare-intraday",
+            enabled=AkshareIntradayDataProvider(paths.intraday_driver_mapping_path).enabled,
+            reason=(
+                "akshare is installed and intraday proxy fetcher is enabled"
+                if AkshareIntradayDataProvider(paths.intraday_driver_mapping_path).enabled
+                else "akshare is not installed; install akshare before enabling intraday real fetcher"
+            ),
+        ),
+        ProviderCapability(
             name="mock-primary",
             enabled=True,
             reason=f"local fixture available at {paths.market_data_primary_path.name}",
@@ -330,4 +344,16 @@ def build_default_news_data_chain(paths: ProjectPaths) -> list[NewsDataProvider]
     return [
         JsonFileNewsDataProvider("mock-news-primary", paths.news_data_primary_path),
         JsonFileNewsDataProvider("mock-news-backup", paths.news_data_backup_path),
+    ]
+
+
+def build_default_intraday_data_chain(paths: ProjectPaths) -> list[IntradayDataProvider]:
+    akshare_provider = AkshareIntradayDataProvider(paths.intraday_driver_mapping_path)
+    if akshare_provider.enabled:
+        return [
+            akshare_provider,
+            JsonFileIntradayDataProvider("mock-intraday-fallback", paths.intraday_realtime_path),
+        ]
+    return [
+        JsonFileIntradayDataProvider("mock-intraday-primary", paths.intraday_realtime_path),
     ]

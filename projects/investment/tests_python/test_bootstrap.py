@@ -18,9 +18,11 @@ from investment_agent.providers import (
     FailingNewsDataProvider,
     JsonFileMarketDataProvider,
     JsonFileNewsDataProvider,
+    build_default_intraday_data_chain,
     build_default_market_data_chain,
     build_default_news_data_chain,
     build_provider_capabilities,
+    refresh_intraday_proxy_inputs,
     refresh_market_quotes,
     refresh_news_items,
 )
@@ -31,6 +33,7 @@ from investment_agent.services.intraday_proxy_engine import (
     classify_intraday_sentiment,
 )
 from investment_agent.services.monthly_planner import build_monthly_plan
+from investment_agent.services.intraday_sanity import run_intraday_sentiment_sanity
 from investment_agent.services.ocr_importer import (
     build_ocr_portfolio_import,
     extract_ocr_lines,
@@ -698,6 +701,37 @@ class InvestmentBootstrapTests(unittest.TestCase):
         self.assertIn("matched_rules", panic["evidence"])
         self.assertEqual(chase["label"], "intraday_momentum_chase")
         self.assertIn("price_trend_pct", chase["evidence"])
+
+    def test_intraday_threshold_sanity_labels_are_distinguishable(self) -> None:
+        config = load_portfolio_state(self.paths.portfolio_state_path)
+        self.assertGreater(len(config.assets), 0)
+        labels = run_intraday_sentiment_sanity()
+        self.assertEqual(labels["panic"], "intraday_panic_selloff")
+        self.assertEqual(labels["washout"], "intraday_distribution_or_washout")
+        self.assertEqual(labels["chase"], "intraday_momentum_chase")
+        self.assertEqual(labels["chop"], "intraday_range_chop")
+
+    def test_intraday_proxy_review_covers_all_mapped_portfolio_funds(self) -> None:
+        current_state = load_portfolio_state(self.paths.portfolio_state_path)
+        review = build_intraday_proxy_review(
+            portfolio_state=current_state,
+            config_path=self.paths.intraday_proxy_config_path,
+            realtime_path=self.paths.intraday_realtime_path,
+        )
+        mapped_symbols = {
+            asset.symbol
+            for asset in current_state.assets
+            if asset.symbol in {"012734", "011609", "024620", "018028", "025833", "017193"}
+        }
+        reviewed_symbols = {item["fund_code"] for item in review["funds"]}
+        self.assertSetEqual(mapped_symbols, reviewed_symbols)
+
+    def test_intraday_real_fetcher_chain_falls_back_to_json_payload(self) -> None:
+        providers = build_default_intraday_data_chain(self.paths)
+        payload = refresh_intraday_proxy_inputs(providers[0], providers[1] if len(providers) > 1 else None)
+        self.assertEqual(payload["status"], "success")
+        self.assertIn("drivers", payload)
+        self.assertGreater(len(payload["drivers"]), 0)
 
     def test_intraday_proxy_review_returns_structured_unavailable_when_realtime_missing(self) -> None:
         current_state = load_portfolio_state(self.paths.portfolio_state_path)

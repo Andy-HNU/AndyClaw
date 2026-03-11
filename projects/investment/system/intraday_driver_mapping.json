@@ -1,0 +1,13 @@
+{
+  "drivers": [
+    {"driver_code": "cambricon", "driver_name": "寒武纪", "akshare_symbol": "688256"},
+    {"driver_code": "zhongji_xuchuang", "driver_name": "中际旭创", "akshare_symbol": "300308"},
+    {"driver_code": "iflytek", "driver_name": "科大讯飞", "akshare_symbol": "002230"},
+    {"driver_code": "csi_ai_theme", "driver_name": "人工智能主题指数", "akshare_symbol": "159819"},
+    {"driver_code": "star50_index", "driver_name": "科创50指数", "akshare_symbol": "588000"},
+    {"driver_code": "csi_robotics", "driver_name": "中证机器人指数", "akshare_symbol": "159551"},
+    {"driver_code": "csi_advanced_manufacturing", "driver_name": "高端装备指数", "akshare_symbol": "516320"},
+    {"driver_code": "csi_power_grid", "driver_name": "电网设备主题指数", "akshare_symbol": "561700"},
+    {"driver_code": "csi_industrial_metals", "driver_name": "工业有色金属指数", "akshare_symbol": "516650"}
+  ]
+}

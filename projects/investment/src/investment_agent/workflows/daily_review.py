@@ -5,8 +5,10 @@ from investment_agent.db.repository import InvestmentRepository
 from investment_agent.providers import (
     MarketQuote,
     NewsItem,
+    build_default_intraday_data_chain,
     build_default_market_data_chain,
     build_default_news_data_chain,
+    refresh_intraday_proxy_inputs,
     refresh_market_quotes,
     refresh_news_items,
 )
@@ -85,10 +87,16 @@ def run_daily_review(
     targets = load_target_allocation(paths.target_allocation_path)
     rebalance_result = evaluate_rebalance(analysis["allocations_pct"], targets)
     signal_review = build_asset_signal_review(portfolio_state, previous_portfolio_state, research_by_code)
+    intraday_primary, *intraday_rest = build_default_intraday_data_chain(paths)
+    intraday_refresh = refresh_intraday_proxy_inputs(
+        intraday_primary,
+        intraday_rest[0] if intraday_rest else None,
+    )
     intraday_market = build_intraday_proxy_review(
         portfolio_state=portfolio_state,
         config_path=paths.intraday_proxy_config_path,
         realtime_path=paths.intraday_realtime_path,
+        realtime_payload=intraday_refresh,
     )
     chart_candidates = sorted(
         [asset for asset in portfolio_state.assets if asset.category != "cash"],
@@ -141,6 +149,7 @@ def run_daily_review(
         "status": "success",
         "price_refresh": price_refresh,
         "news_refresh": news_refresh,
+        "intraday_refresh": intraday_refresh,
         "rebalance": rebalance_result,
         "signal_review": signal_review,
         "intraday_market": intraday_market,

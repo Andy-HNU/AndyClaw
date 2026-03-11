@@ -1,4 +1,16 @@
 {
+  "sentiment_thresholds": {
+    "panic_price_trend_max": -2.0,
+    "panic_volume_ratio_min": 1.6,
+    "panic_drawdown_max": -1.6,
+    "washout_amplitude_min": 3.0,
+    "washout_volume_ratio_min": 1.35,
+    "washout_price_trend_max": -0.8,
+    "washout_drawdown_max": -1.2,
+    "chase_price_trend_min": 1.2,
+    "chase_volume_ratio_min": 1.35,
+    "chase_drawdown_min": -1.0
+  },
   "funds": {
     "012734": {
       "fund_name": "易方达人工智能ETF联接C",
@@ -19,6 +31,38 @@
       "base_band_pct": 0.005,
       "fallback_mapping": [
         {"driver_code": "star50_index", "driver_name": "科创50指数", "weight": 1.0}
+      ]
+    },
+    "024620": {
+      "fund_name": "嘉实中证机器人ETF联接C",
+      "minimum_holdings_coverage": 0.5,
+      "base_band_pct": 0.006,
+      "fallback_mapping": [
+        {"driver_code": "csi_robotics", "driver_name": "中证机器人指数", "weight": 1.0}
+      ]
+    },
+    "018028": {
+      "fund_name": "嘉实中证高端装备细分50ETF联接C",
+      "minimum_holdings_coverage": 0.5,
+      "base_band_pct": 0.0055,
+      "fallback_mapping": [
+        {"driver_code": "csi_advanced_manufacturing", "driver_name": "高端装备指数", "weight": 1.0}
+      ]
+    },
+    "025833": {
+      "fund_name": "天弘中证电网设备主题指数C",
+      "minimum_holdings_coverage": 0.5,
+      "base_band_pct": 0.0055,
+      "fallback_mapping": [
+        {"driver_code": "csi_power_grid", "driver_name": "电网设备主题指数", "weight": 1.0}
+      ]
+    },
+    "017193": {
+      "fund_name": "天弘中证工业有色金属主题ETF联接C",
+      "minimum_holdings_coverage": 0.5,
+      "base_band_pct": 0.006,
+      "fallback_mapping": [
+        {"driver_code": "csi_industrial_metals", "driver_name": "工业有色金属指数", "weight": 1.0}
       ]
     }
   }

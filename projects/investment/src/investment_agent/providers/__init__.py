@@ -3,9 +3,17 @@ from investment_agent.providers.factory import (
     AkshareNewsProvider,
     EFinanceFundProvider,
     ProviderCapability,
+    build_default_intraday_data_chain,
     build_default_market_data_chain,
     build_default_news_data_chain,
     build_provider_capabilities,
+)
+from investment_agent.providers.intraday_data import (
+    AkshareIntradayDataProvider,
+    IntradayDataProvider,
+    IntradayDataProviderError,
+    JsonFileIntradayDataProvider,
+    refresh_intraday_proxy_inputs,
 )
 from investment_agent.providers.market_data import (
     FailingMarketDataProvider,
@@ -25,9 +33,14 @@ from investment_agent.providers.news_data import (
 )
 
 __all__ = [
+    "AkshareIntradayDataProvider",
     "AkshareMarketProvider",
     "AkshareNewsProvider",
     "EFinanceFundProvider",
+    "IntradayDataProvider",
+    "IntradayDataProviderError",
+    "JsonFileIntradayDataProvider",
+    "refresh_intraday_proxy_inputs",
     "FailingMarketDataProvider",
     "JsonFileMarketDataProvider",
     "MarketDataProvider",

@@ -8,8 +8,10 @@ from investment_agent.config import discover_paths
 from investment_agent.db.repository import InvestmentRepository
 from investment_agent.providers import (
     MarketQuote,
+    build_default_intraday_data_chain,
     build_default_market_data_chain,
     build_provider_capabilities,
+    refresh_intraday_proxy_inputs,
     refresh_market_quotes,
 )
 from investment_agent.services.monthly_planner import build_monthly_plan
@@ -222,10 +224,16 @@ def cmd_signal_review() -> int:
     previous_state = load_portfolio_state(paths.previous_portfolio_state_path)
     research = load_asset_research(paths.asset_research_path)
     review = build_asset_signal_review(current_state, previous_state, research)
+    intraday_primary, *intraday_rest = build_default_intraday_data_chain(paths)
+    intraday_payload = refresh_intraday_proxy_inputs(
+        intraday_primary,
+        intraday_rest[0] if intraday_rest else None,
+    )
     review["intraday_market"] = build_intraday_proxy_review(
         portfolio_state=current_state,
         config_path=paths.intraday_proxy_config_path,
         realtime_path=paths.intraday_realtime_path,
+        realtime_payload=intraday_payload,
     )
     print(json.dumps(review, ensure_ascii=False, indent=2))
     return 0
