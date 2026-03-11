@@ -25,6 +25,7 @@ from investment_agent.providers import (
     refresh_news_items,
 )
 from investment_agent.providers.factory import AkshareMarketProvider, AkshareNewsProvider
+from investment_agent.services.chart_artifacts import render_daily_price_chart
 from investment_agent.services.monthly_planner import build_monthly_plan
 from investment_agent.services.ocr_importer import (
     build_ocr_portfolio_import,
@@ -89,7 +90,7 @@ class InvestmentBootstrapTests(unittest.TestCase):
 
         latest = self.repository.fetch_latest_snapshot()
         self.assertIsNotNone(latest)
-        self.assertEqual(latest["snapshot_time"], "2026-03")
+        self.assertEqual(latest["snapshot_time"], "2026-03-11")
         assets = self.repository.fetch_portfolio_assets()
         self.assertGreaterEqual(len(assets), 1)
         self.assertIsNotNone(assets[0]["quantity"])
@@ -121,7 +122,7 @@ class InvestmentBootstrapTests(unittest.TestCase):
         analysis = build_portfolio_analysis(
             self.paths.portfolio_state_path, self.paths.target_allocation_path
         )
-        self.assertAlmostEqual(analysis["total_value"], 51653.71, places=2)
+        self.assertAlmostEqual(analysis["total_value"], 49802.47, places=2)
         allocations = analysis["allocations_pct"]
         self.assertSetEqual(set(allocations), {"gold", "bond", "stock", "cash"})
         self.assertAlmostEqual(sum(allocations.values()), 100.0, places=2)
@@ -132,7 +133,7 @@ class InvestmentBootstrapTests(unittest.TestCase):
         self.assertAlmostEqual(by_code["power_grid"].shares, 2050.0089, places=4)
         self.assertAlmostEqual(by_code["power_grid"].average_cost, 1.03, places=2)
         self.assertEqual(by_code["power_grid"].asset_type, "etf")
-        self.assertAlmostEqual(by_code["黄金"].shares, 20.0295, places=4)
+        self.assertAlmostEqual(by_code["黄金"].shares, 12.1713, places=4)
 
     def test_rebalance_trigger_matches_rule_doc(self) -> None:
         result = evaluate_rebalance(
@@ -185,7 +186,7 @@ class InvestmentBootstrapTests(unittest.TestCase):
             fund_etf_spot_em=lambda: pd.DataFrame(
                 [
                     {
-                        "代码": "561200",
+                        "代码": "025833",
                         "名称": "电网指数",
                         "最新价": 1.127,
                         "最高价": 1.133,
@@ -198,21 +199,21 @@ class InvestmentBootstrapTests(unittest.TestCase):
             fund_value_estimation_em=lambda symbol="全部": pd.DataFrame(
                 [
                     {
-                        "基金代码": "003376",
-                        "基金名称": "广发中债7-10年国开债指数A",
-                        "2026-03-10-估算数据-估算值": 1.3451,
-                        "2026-03-10-公布数据-单位净值": 1.3449,
+                        "基金代码": "011062",
+                        "基金名称": "广发中债7-10年期国开行债券指数E",
+                        "2026-03-10-估算数据-估算值": 1.0413,
+                        "2026-03-10-公布数据-单位净值": 1.0408,
                     }
                 ]
             ),
         )
 
         with mock.patch("importlib.import_module", return_value=fake_module):
-            quotes = provider.get_latest_quotes(["power_grid", "广发中债7-10年", "黄金", "现金"])
+            quotes = provider.get_latest_quotes(["power_grid", "广发中债7-10年期国开行债券指数E", "黄金", "现金"])
 
         by_code = {item.asset_code: item for item in quotes}
         self.assertEqual(by_code["power_grid"].source, "akshare-market")
-        self.assertAlmostEqual(by_code["广发中债7-10年"].close_price, 1.3451, places=4)
+        self.assertAlmostEqual(by_code["广发中债7-10年期国开行债券指数E"].close_price, 1.0413, places=4)
         self.assertEqual(by_code["黄金"].source, "akshare-market")
         self.assertAlmostEqual(by_code["黄金"].close_price, 1144.78, places=2)
         self.assertEqual(by_code["现金"].close_price, 1.0)
@@ -279,9 +280,57 @@ class InvestmentBootstrapTests(unittest.TestCase):
         self.assertGreater(row_id, 0)
         latest = self.repository.fetch_latest_analysis()
         self.assertIsNotNone(latest)
-        self.assertEqual(latest["analysis_time"], "2026-03")
+        self.assertEqual(latest["analysis_time"], "2026-03-11")
         self.assertIn("gold", latest["allocation_json"])
         self.assertIn("cash", latest["deviation_json"])
+
+    def test_store_report_updates_existing_same_day_report(self) -> None:
+        self.repository.initialize()
+        first_id = self.repository.store_report(
+            report_time="2026-03-11",
+            report_type="daily",
+            title="first",
+            content_md="one",
+            content_json={"v": 1},
+        )
+        second_id = self.repository.store_report(
+            report_time="2026-03-11 20:01:00",
+            report_type="daily",
+            title="second",
+            content_md="two",
+            content_json={"v": 2},
+        )
+
+        self.assertEqual(first_id, second_id)
+        self.assertEqual(self.repository.count_rows("reports"), 1)
+        latest = self.repository.fetch_latest_report("daily")
+        self.assertEqual(latest["title"], "second")
+        self.assertEqual(latest["content_json"]["v"], 2)
+        self.assertEqual(latest["report_time"], "2026-03-11 20:01:00")
+
+    def test_store_investment_suggestion_is_idempotent_within_same_day(self) -> None:
+        self.repository.initialize()
+        first_id = self.repository.store_investment_suggestion(
+            suggestion_time="2026-03-11 09:30:00",
+            suggestion_type="rebalance_review",
+            content={"v": 1},
+            rationale="first",
+            status="draft",
+        )
+        second_id = self.repository.store_investment_suggestion(
+            suggestion_time="2026-03-11 16:40:00",
+            suggestion_type="rebalance_review",
+            content={"v": 2},
+            rationale="second",
+            status="ready",
+        )
+
+        self.assertEqual(first_id, second_id)
+        self.assertEqual(self.repository.count_rows("investment_suggestions"), 1)
+        latest = self.repository.fetch_latest_investment_suggestion()
+        self.assertIsNotNone(latest)
+        self.assertEqual(latest["content_json"]["v"], 2)
+        self.assertEqual(latest["status"], "ready")
 
     def test_rebalance_review_can_be_persisted(self) -> None:
         analysis = build_portfolio_analysis(
@@ -302,6 +351,47 @@ class InvestmentBootstrapTests(unittest.TestCase):
         signals = self.repository.fetch_open_risk_signals()
         self.assertGreaterEqual(len(signals), 1)
         self.assertEqual(signals[0]["signal_type"], "allocation_drift")
+
+    def test_rebalance_review_dedupes_same_day_open_signals(self) -> None:
+        analysis = build_portfolio_analysis(
+            self.paths.portfolio_state_path, self.paths.target_allocation_path
+        )
+        targets = load_target_allocation(self.paths.target_allocation_path)
+        rebalance_result = evaluate_rebalance(analysis["allocations_pct"], targets)
+        self.repository.initialize()
+
+        persist_rebalance_review(self.repository, analysis, rebalance_result)
+        persist_rebalance_review(self.repository, analysis, rebalance_result)
+
+        open_signals = [
+            item for item in self.repository.fetch_open_risk_signals() if item["signal_time"] == "2026-03-11"
+        ]
+        self.assertEqual(len(open_signals), len(rebalance_result["breaches"]))
+
+    def test_store_risk_signal_dedupes_same_day_equivalent_open_signal(self) -> None:
+        self.repository.initialize()
+        first_id = self.repository.store_risk_signal(
+            signal_time="2026-03-11 09:00:00",
+            signal_type="allocation_drift",
+            severity="medium",
+            message="stock is over target",
+            evidence={"source": "first"},
+            status="open",
+        )
+        second_id = self.repository.store_risk_signal(
+            signal_time="2026-03-11 15:00:00",
+            signal_type="allocation_drift",
+            severity="medium",
+            message="stock is over target",
+            evidence={"source": "second"},
+            status="open",
+        )
+
+        self.assertEqual(first_id, second_id)
+        self.assertEqual(self.repository.count_rows("risk_signals"), 1)
+        open_signals = self.repository.fetch_open_risk_signals()
+        self.assertEqual(open_signals[0]["signal_time"], "2026-03-11 15:00:00")
+        self.assertEqual(open_signals[0]["evidence_json"]["source"], "second")
 
     def test_news_primary_provider_writes_news_items(self) -> None:
         provider = JsonFileNewsDataProvider("mock-news-primary", self.paths.news_data_primary_path)
@@ -334,11 +424,13 @@ class InvestmentBootstrapTests(unittest.TestCase):
         summary = build_position_change_summary(current_state, previous_state)
         by_code = {item["asset_code"]: item for item in summary}
 
-        self.assertAlmostEqual(by_code["power_grid"]["amount_change"], 164.96, places=2)
-        self.assertAlmostEqual(by_code["power_grid"]["share_change"], 100.0, places=4)
-        self.assertAlmostEqual(by_code["power_grid"]["flow_effect"], 112.7, places=2)
-        self.assertAlmostEqual(by_code["现金"]["share_change"], -1800.0, places=4)
-        self.assertAlmostEqual(by_code["现金"]["amount_change"], -1800.0, places=2)
+        self.assertAlmostEqual(by_code["黄金"]["amount_change"], 13996.26, places=2)
+        self.assertAlmostEqual(by_code["黄金"]["share_change"], 12.1713, places=4)
+        self.assertAlmostEqual(by_code["power_grid"]["amount_change"], 54.21, places=2)
+        self.assertAlmostEqual(by_code["power_grid"]["share_change"], 0.0, places=4)
+        self.assertAlmostEqual(by_code["power_grid"]["flow_effect"], 0.09, places=2)
+        self.assertAlmostEqual(by_code["现金"]["share_change"], -2061.21, places=4)
+        self.assertAlmostEqual(by_code["现金"]["amount_change"], -2061.21, places=2)
 
     def test_signal_formula_helpers_match_expected_sequences(self) -> None:
         bars = [
@@ -385,11 +477,11 @@ class InvestmentBootstrapTests(unittest.TestCase):
 
         plan = build_monthly_plan(analysis, targets, monthly_budget=12000)
 
-        self.assertAlmostEqual(analysis["total_value"], 51653.71, places=2)
-        self.assertAlmostEqual(analysis["allocations_pct"]["stock"], 26.5291, places=4)
-        self.assertAlmostEqual(analysis["allocations_pct"]["bond"], 23.3236, places=4)
-        self.assertAlmostEqual(analysis["allocations_pct"]["gold"], 26.9156, places=4)
-        self.assertAlmostEqual(analysis["allocations_pct"]["cash"], 23.2316, places=4)
+        self.assertAlmostEqual(analysis["total_value"], 49802.47, places=2)
+        self.assertAlmostEqual(analysis["allocations_pct"]["stock"], 27.7722, places=4)
+        self.assertAlmostEqual(analysis["allocations_pct"]["bond"], 24.1678, places=4)
+        self.assertAlmostEqual(analysis["allocations_pct"]["gold"], 28.1035, places=4)
+        self.assertAlmostEqual(analysis["allocations_pct"]["cash"], 19.9564, places=4)
         self.assertAlmostEqual(targets["stock"], 0.5, places=4)
         self.assertAlmostEqual(targets["bond"], 0.25, places=4)
         self.assertAlmostEqual(targets["gold"], 0.15, places=4)
@@ -402,11 +494,11 @@ class InvestmentBootstrapTests(unittest.TestCase):
             places=2,
         )
         self.assertEqual(plan["recommendations"][0]["category"], "stock")
-        self.assertAlmostEqual(plan["recommendations"][0]["gap_value"], 12123.59, places=2)
-        self.assertAlmostEqual(plan["recommendations"][0]["recommended_amount"], 11200.04, places=2)
+        self.assertAlmostEqual(plan["recommendations"][0]["gap_value"], 11069.99, places=2)
+        self.assertAlmostEqual(plan["recommendations"][0]["recommended_amount"], 11566.93, places=2)
         self.assertEqual(plan["recommendations"][1]["category"], "bond")
-        self.assertAlmostEqual(plan["recommendations"][1]["gap_value"], 865.92, places=2)
-        self.assertAlmostEqual(plan["recommendations"][1]["recommended_amount"], 799.96, places=2)
+        self.assertAlmostEqual(plan["recommendations"][1]["recommended_amount"], 433.07, places=2)
+        self.assertAlmostEqual(plan["recommendations"][1]["gap_value"], 414.46, places=2)
         self.assertEqual(plan["remaining_budget"], 0.0)
 
     def test_monthly_report_includes_position_and_research_sections(self) -> None:
@@ -473,6 +565,7 @@ class InvestmentBootstrapTests(unittest.TestCase):
             rebalance_result=evaluate_rebalance(analysis["allocations_pct"], targets),
             risk_signals=review["signals"],
             news_items=[],
+            chart_artifacts=[],
         )
 
         self.assertEqual(report["report_type"], "daily")
@@ -480,9 +573,10 @@ class InvestmentBootstrapTests(unittest.TestCase):
         section_ids = [item["section_id"] for item in report["content_json"]["sections"]]
         self.assertEqual(
             section_ids,
-            ["portfolio_snapshot", "rebalance_review", "risk_summary", "news_summary", "action_items"],
+            ["portfolio_snapshot", "trend_charts", "rebalance_review", "risk_summary", "news_summary", "action_items"],
         )
         self.assertIn("今日仓位快照", report["content_md"])
+        self.assertIn("chart_artifacts", report["content_json"])
 
     def test_weekly_review_workflow_persists_weekly_report(self) -> None:
         self.repository.initialize()
@@ -511,6 +605,40 @@ class InvestmentBootstrapTests(unittest.TestCase):
         self.assertEqual(latest_report["report_type"], "daily")
         self.assertEqual(latest_report["content_json"]["schema_version"], "1.0")
         self.assertIn("action_items", latest_report["content_json"])
+        self.assertIn("chart_artifacts", latest_report["content_json"])
+        self.assertIn(latest_report["content_json"]["data_quality"], {"real", "fallback", "mixed"})
+        self.assertIn("provider_notes", latest_report["content_json"])
+        self.assertIn("data_quality", latest_report["content_json"]["summary"])
+
+    def test_daily_chart_renderer_outputs_png_when_history_is_available(self) -> None:
+        chart = render_daily_price_chart(
+            paths=self.paths,
+            report_time="2026-03-11 19:52:37",
+            series=[
+                {
+                    "name": "示例基金",
+                    "points": [
+                        {"x": "03-06", "y": 1.01},
+                        {"x": "03-07", "y": 1.02},
+                        {"x": "03-10", "y": 1.03},
+                    ],
+                }
+            ],
+        )
+
+        self.assertEqual(chart["status"], "success")
+        self.assertIn("message", chart)
+        self.assertTrue(Path(str(chart["path"])).exists())
+
+    def test_daily_chart_renderer_skips_when_history_is_insufficient(self) -> None:
+        chart = render_daily_price_chart(
+            paths=self.paths,
+            report_time="2026-03-11 19:52:37",
+            series=[{"name": "示例基金", "points": [{"x": "03-10", "y": 1.03}]}],
+        )
+
+        self.assertEqual(chart["status"], "skipped")
+        self.assertEqual(chart["reason"], "insufficient_history")
 
     def test_monthly_review_workflow_persists_report_and_supporting_data(self) -> None:
         self.repository.initialize()

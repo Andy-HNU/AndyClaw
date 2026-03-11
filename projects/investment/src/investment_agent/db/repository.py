@@ -134,6 +134,29 @@ class InvestmentRepository:
             ).fetchone()
         return dict(row) if row else None
 
+    def fetch_recent_price_history(self, asset_code: str, limit: int = 30) -> list[dict[str, Any]]:
+        with sqlite3.connect(self.db_path) as connection:
+            connection.row_factory = sqlite3.Row
+            rows = connection.execute(
+                """
+                SELECT asset_code, source, trade_date, close_price, high_price, low_price, volume, fetched_at
+                FROM price_snapshots
+                WHERE asset_code = ?
+                ORDER BY trade_date DESC, fetched_at DESC
+                LIMIT ?
+                """,
+                (asset_code, limit),
+            ).fetchall()
+        deduped_by_trade_date: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            item = dict(row)
+            trade_date = str(item["trade_date"])
+            if trade_date not in deduped_by_trade_date:
+                deduped_by_trade_date[trade_date] = item
+        items = list(deduped_by_trade_date.values())
+        items.reverse()
+        return items
+
     def store_news_items(self, news_items: list[NewsItem]) -> int:
         with sqlite3.connect(self.db_path) as connection:
             for item in news_items:
@@ -218,6 +241,38 @@ class InvestmentRepository:
         status: str = "open",
     ) -> int:
         with sqlite3.connect(self.db_path) as connection:
+            connection.row_factory = sqlite3.Row
+            existing = connection.execute(
+                """
+                SELECT id
+                FROM risk_signals
+                WHERE date(signal_time) = date(?)
+                  AND signal_type = ?
+                  AND severity = ?
+                  AND message = ?
+                  AND status = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (signal_time, signal_type, severity, message, status),
+            ).fetchone()
+            if existing is not None:
+                connection.execute(
+                    """
+                    UPDATE risk_signals
+                    SET signal_time = ?, severity = ?, evidence_json = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        signal_time,
+                        severity,
+                        json.dumps(evidence, ensure_ascii=False, sort_keys=True),
+                        int(existing["id"]),
+                    ),
+                )
+                connection.commit()
+                return int(existing["id"])
+
             cursor = connection.execute(
                 """
                 INSERT INTO risk_signals (
@@ -236,6 +291,46 @@ class InvestmentRepository:
             connection.commit()
         return int(cursor.lastrowid)
 
+    def close_open_risk_signals(
+        self,
+        signal_types: list[str],
+        active_messages_by_type: dict[str, set[str]],
+        signal_date: str | None = None,
+    ) -> int:
+        if not signal_types:
+            return 0
+        closed = 0
+        with sqlite3.connect(self.db_path) as connection:
+            connection.row_factory = sqlite3.Row
+            placeholders = ", ".join("?" for _ in signal_types)
+            query = f"""
+                SELECT id, signal_type, message
+                FROM risk_signals
+                WHERE status = 'open' AND signal_type IN ({placeholders})
+                """
+            parameters: tuple[Any, ...] = tuple(signal_types)
+            if signal_date is not None:
+                query += " AND date(signal_time) = date(?)"
+                parameters = (*parameters, signal_date)
+
+            rows = connection.execute(query, parameters).fetchall()
+            for row in rows:
+                signal_type = str(row["signal_type"])
+                message = str(row["message"])
+                if message in active_messages_by_type.get(signal_type, set()):
+                    continue
+                connection.execute(
+                    """
+                    UPDATE risk_signals
+                    SET status = 'closed'
+                    WHERE id = ?
+                    """,
+                    (int(row["id"]),),
+                )
+                closed += 1
+            connection.commit()
+        return closed
+
     def store_investment_suggestion(
         self,
         suggestion_time: str,
@@ -245,6 +340,35 @@ class InvestmentRepository:
         status: str = "draft",
     ) -> int:
         with sqlite3.connect(self.db_path) as connection:
+            connection.row_factory = sqlite3.Row
+            existing = connection.execute(
+                """
+                SELECT id
+                FROM investment_suggestions
+                WHERE date(suggestion_time) = date(?) AND suggestion_type = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (suggestion_time, suggestion_type),
+            ).fetchone()
+            if existing is not None:
+                connection.execute(
+                    """
+                    UPDATE investment_suggestions
+                    SET suggestion_time = ?, content_json = ?, rationale = ?, status = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        suggestion_time,
+                        json.dumps(content, ensure_ascii=False, sort_keys=True),
+                        rationale,
+                        status,
+                        int(existing["id"]),
+                    ),
+                )
+                connection.commit()
+                return int(existing["id"])
+
             cursor = connection.execute(
                 """
                 INSERT INTO investment_suggestions (
@@ -328,6 +452,35 @@ class InvestmentRepository:
         content_json: dict[str, Any],
     ) -> int:
         with sqlite3.connect(self.db_path) as connection:
+            connection.row_factory = sqlite3.Row
+            existing = connection.execute(
+                """
+                SELECT id
+                FROM reports
+                WHERE date(report_time) = date(?) AND report_type = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (report_time, report_type),
+            ).fetchone()
+            if existing is not None:
+                connection.execute(
+                    """
+                    UPDATE reports
+                    SET report_time = ?, title = ?, content_md = ?, content_json = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        report_time,
+                        title,
+                        content_md,
+                        json.dumps(content_json, ensure_ascii=False, sort_keys=True),
+                        int(existing["id"]),
+                    ),
+                )
+                connection.commit()
+                return int(existing["id"])
+
             cursor = connection.execute(
                 """
                 INSERT INTO reports (

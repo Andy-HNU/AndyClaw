@@ -6,13 +6,20 @@ def _build_summary(
     total_value: float,
     risk_signals: list[dict[str, object]],
     news_items: list[dict[str, object]],
+    data_quality: str | None = None,
+    provider_notes: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    return {
+    summary = {
         "report_type": report_type,
         "total_value": round(total_value, 2),
         "risk_signal_count": len(risk_signals),
         "news_count": len(news_items),
     }
+    if data_quality is not None:
+        summary["data_quality"] = data_quality
+    if provider_notes is not None:
+        summary["provider_notes"] = provider_notes
+    return summary
 
 
 def generate_daily_report(
@@ -20,7 +27,11 @@ def generate_daily_report(
     rebalance_result: dict[str, object],
     risk_signals: list[dict[str, object]],
     news_items: list[dict[str, object]],
+    chart_artifacts: list[dict[str, object]] | None = None,
+    data_quality: str | None = None,
+    provider_notes: dict[str, object] | None = None,
 ) -> dict[str, object]:
+    chart_artifacts = chart_artifacts or []
     title = f"{analysis['updated_at']} 投资日报"
     action_items = []
     if rebalance_result["triggered"]:
@@ -36,11 +47,30 @@ def generate_daily_report(
                 {"label": "deviations_pct", "value": analysis["deviations_pct"]},
             ],
         },
+        {"section_id": "trend_charts", "title": "趋势图表", "items": chart_artifacts},
         {"section_id": "rebalance_review", "title": "再平衡检查", "items": [rebalance_result]},
         {"section_id": "risk_summary", "title": "今日风险摘要", "items": risk_signals},
         {"section_id": "news_summary", "title": "今日板块新闻", "items": news_items},
         {"section_id": "action_items", "title": "建议动作", "items": action_items},
     ]
+    if data_quality is not None:
+        sections.append(
+            {
+                "section_id": "data_quality",
+                "title": "数据质量",
+                "items": [
+                    {
+                        "data_quality": data_quality,
+                        "provider_notes": provider_notes or {},
+                    }
+                ],
+            }
+        )
+    chart_lines = [
+        f"- {item['title']}: {item['path']}"
+        for item in chart_artifacts
+        if item.get("status") == "success"
+    ] or ["- 暂无可用趋势图表"]
     risk_lines = [f"- {item['signal_type']}: {item['message']}" for item in risk_signals[:5]] or ["- 暂无新增风险"]
     news_lines = [f"- [{item['topic']}] {item['title']}" for item in news_items[:5]] or ["- 暂无新闻摘要"]
     action_lines = [f"- {item}" for item in action_items] or ["- 保持观察，等待更多证据"]
@@ -52,6 +82,9 @@ def generate_daily_report(
             f"- 总资产: {analysis['total_value']:.2f}",
             f"- 当前比例: {analysis['allocations_pct']}",
             f"- 相对目标偏离: {analysis['deviations_pct']}",
+            "",
+            "## 趋势图表",
+            *chart_lines,
             "",
             "## 再平衡检查",
             f"- 是否触发: {'是' if rebalance_result['triggered'] else '否'}",
@@ -77,6 +110,8 @@ def generate_daily_report(
             total_value=float(analysis["total_value"]),
             risk_signals=risk_signals,
             news_items=news_items,
+            data_quality=data_quality,
+            provider_notes=provider_notes,
         ),
         "sections": sections,
         "portfolio": {
@@ -84,10 +119,13 @@ def generate_daily_report(
             "allocations_pct": analysis["allocations_pct"],
             "deviations_pct": analysis["deviations_pct"],
         },
+        "chart_artifacts": chart_artifacts,
         "rebalance": rebalance_result,
         "risk_summary": risk_signals,
         "news_observations": news_items,
         "action_items": action_items,
+        "data_quality": data_quality,
+        "provider_notes": provider_notes,
     }
     return {
         "report_type": "daily",

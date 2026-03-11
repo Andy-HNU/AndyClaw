@@ -61,6 +61,15 @@ def run_monthly_review(
     persisted_rebalance = persist_rebalance_review(repository, analysis, rebalance_result)
     monthly_plan = build_monthly_plan(analysis, targets, monthly_budget=monthly_budget)
     signal_review = build_asset_signal_review(portfolio_state, previous_portfolio_state, research_by_code)
+    v2_messages_by_type: dict[str, set[str]] = {}
+    for signal in signal_review["signals"]:
+        signal_type = str(signal["signal_type"])
+        v2_messages_by_type.setdefault(signal_type, set()).add(str(signal["message"]))
+    closed_v2_signal_count = repository.close_open_risk_signals(
+        signal_types=sorted(v2_messages_by_type),
+        active_messages_by_type=v2_messages_by_type,
+        signal_date=str(analysis["updated_at"]),
+    )
     v2_signal_ids: list[int] = []
     for signal in signal_review["signals"]:
         v2_signal_ids.append(
@@ -97,6 +106,7 @@ def run_monthly_review(
         "analysis_result_id": analysis_result_id,
         "rebalance": rebalance_result,
         "persisted_rebalance": persisted_rebalance,
+        "closed_v2_signal_count": closed_v2_signal_count,
         "signal_review": signal_review,
         "monthly_plan": monthly_plan,
         "report_id": report_id,
