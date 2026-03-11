@@ -2,6 +2,16 @@
   "updated_at": "2026-03-11",
   "assets": [
     {
+      "name": "黄金",
+      "category": "gold",
+      "asset_type": "commodity",
+      "symbol": "Au99.99",
+      "value": 13996.26,
+      "shares": 12.1713,
+      "average_cost": 1124.36,
+      "profit": 311.39
+    },
+    {
       "name": "广发中债7-10年",
       "category": "bond",
       "asset_type": "bond_fund",
