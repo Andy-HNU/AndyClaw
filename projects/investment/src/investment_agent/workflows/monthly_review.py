@@ -62,13 +62,25 @@ def run_monthly_review(
     monthly_plan = build_monthly_plan(analysis, targets, monthly_budget=monthly_budget)
     signal_review = build_asset_signal_review(portfolio_state, previous_portfolio_state, research_by_code)
     v2_messages_by_type: dict[str, set[str]] = {}
+    v2_dedupe_keys_by_type: dict[str, set[str]] = {}
     for signal in signal_review["signals"]:
         signal_type = str(signal["signal_type"])
-        v2_messages_by_type.setdefault(signal_type, set()).add(str(signal["message"]))
+        signal_message = str(signal["message"])
+        v2_messages_by_type.setdefault(signal_type, set()).add(signal_message)
+        v2_dedupe_keys_by_type.setdefault(signal_type, set()).add(
+            repository._build_risk_signal_dedupe_key(
+                signal_time=str(analysis["updated_at"]),
+                signal_type=signal_type,
+                severity=str(signal["severity"]),
+                message=signal_message,
+                evidence=dict(signal["evidence"]),
+            )
+        )
     closed_v2_signal_count = repository.close_open_risk_signals(
         signal_types=sorted(v2_messages_by_type),
         active_messages_by_type=v2_messages_by_type,
         signal_date=str(analysis["updated_at"]),
+        active_dedupe_keys_by_type=v2_dedupe_keys_by_type,
     )
     v2_signal_ids: list[int] = []
     for signal in signal_review["signals"]:

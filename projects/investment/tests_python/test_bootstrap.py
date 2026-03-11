@@ -393,6 +393,75 @@ class InvestmentBootstrapTests(unittest.TestCase):
         self.assertEqual(open_signals[0]["signal_time"], "2026-03-11 15:00:00")
         self.assertEqual(open_signals[0]["evidence_json"]["source"], "second")
 
+    def test_store_risk_signal_uses_semantic_dedupe_key_when_wording_changes(self) -> None:
+        self.repository.initialize()
+        evidence_first = {
+            "breach": {"category": "stock", "current_pct": 66.1, "target_pct": 50.0},
+            "priority_action": "buy bonds",
+        }
+        evidence_second = {
+            "priority_action": "buy bonds",
+            "breach": {"target_pct": 50.0, "category": "stock", "current_pct": 66.1},
+        }
+        first_id = self.repository.store_risk_signal(
+            signal_time="2026-03-11 09:00:00",
+            signal_type="allocation_drift",
+            severity="high",
+            message="stock allocation drifts above target",
+            evidence=evidence_first,
+            status="open",
+        )
+        second_id = self.repository.store_risk_signal(
+            signal_time="2026-03-11 15:00:00",
+            signal_type="allocation_drift",
+            severity="high",
+            message="stock allocation remains above target band",
+            evidence=evidence_second,
+            status="open",
+        )
+
+        self.assertEqual(first_id, second_id)
+        self.assertEqual(self.repository.count_rows("risk_signals"), 1)
+
+    def test_cleanup_legacy_duplicates_removes_pre_idempotency_rows(self) -> None:
+        self.repository.initialize()
+        with sqlite3.connect(self.db_path) as connection:
+            connection.execute(
+                "INSERT INTO risk_signals(signal_time, signal_type, severity, message, evidence_json, status) VALUES (?, ?, ?, ?, ?, ?)",
+                ("2026-03-10 09:00:00", "allocation_drift", "medium", "a", "{}", "open"),
+            )
+            connection.execute(
+                "INSERT INTO risk_signals(signal_time, signal_type, severity, message, evidence_json, status) VALUES (?, ?, ?, ?, ?, ?)",
+                ("2026-03-10 10:00:00", "allocation_drift", "high", "b", "{}", "open"),
+            )
+            connection.execute(
+                "INSERT INTO investment_suggestions(suggestion_time, suggestion_type, content_json, rationale, status) VALUES (?, ?, ?, ?, ?)",
+                ("2026-03-10 09:00:00", "rebalance_review", "{}", "r1", "draft"),
+            )
+            connection.execute(
+                "INSERT INTO investment_suggestions(suggestion_time, suggestion_type, content_json, rationale, status) VALUES (?, ?, ?, ?, ?)",
+                ("2026-03-10 11:00:00", "rebalance_review", "{}", "r2", "ready"),
+            )
+            connection.execute(
+                "INSERT INTO reports(report_time, report_type, title, content_md, content_json) VALUES (?, ?, ?, ?, ?)",
+                ("2026-03-10 09:00:00", "daily", "old", "x", "{}"),
+            )
+            connection.execute(
+                "INSERT INTO reports(report_time, report_type, title, content_md, content_json) VALUES (?, ?, ?, ?, ?)",
+                ("2026-03-10 12:00:00", "daily", "new", "y", "{}"),
+            )
+            connection.commit()
+
+        dry_run = self.repository.cleanup_legacy_same_day_duplicates(dry_run=True)
+        self.assertEqual(dry_run["total_deleted"], 3)
+        self.assertEqual(self.repository.count_rows("risk_signals"), 2)
+
+        applied = self.repository.cleanup_legacy_same_day_duplicates(dry_run=False)
+        self.assertEqual(applied["total_deleted"], 3)
+        self.assertEqual(self.repository.count_rows("risk_signals"), 1)
+        self.assertEqual(self.repository.count_rows("investment_suggestions"), 1)
+        self.assertEqual(self.repository.count_rows("reports"), 1)
+
     def test_news_primary_provider_writes_news_items(self) -> None:
         provider = JsonFileNewsDataProvider("mock-news-primary", self.paths.news_data_primary_path)
 

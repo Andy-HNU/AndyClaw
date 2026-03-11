@@ -62,8 +62,10 @@ CREATE TABLE IF NOT EXISTS risk_signals (
     severity TEXT NOT NULL,
     message TEXT NOT NULL,
     evidence_json TEXT,
+    dedupe_key TEXT,
     status TEXT NOT NULL
 );
+
 
 CREATE TABLE IF NOT EXISTS investment_suggestions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

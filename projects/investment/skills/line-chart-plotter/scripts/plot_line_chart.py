@@ -9,13 +9,11 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 PALETTE = [
-    (52, 152, 219),
-    (231, 76, 60),
-    (46, 204, 113),
-    (155, 89, 182),
-    (241, 196, 15),
-    (230, 126, 34),
-    (26, 188, 156),
+    (68, 138, 255),
+    (255, 99, 132),
+    (75, 192, 192),
+    (255, 159, 64),
+    (153, 102, 255),
 ]
 
 
@@ -83,39 +81,36 @@ def main() -> int:
         raise SystemExit("Input validation failed:\n- " + "\n- ".join(errors))
 
     width, height = args.width, args.height
-    img = Image.new("RGBA", (width, height), (248, 250, 252, 255))
+    img = Image.new("RGBA", (width, height), (11, 20, 34, 255))
     draw = ImageDraw.Draw(img)
 
     title_font = _load_font(28)
-    label_font = _load_font(19)
-    axis_font = _load_font(16)
+    label_font = _load_font(18)
+    axis_font = _load_font(15)
     legend_font = _load_font(15)
 
     title = str(payload.get("title", "Line Chart"))
     x_label = str(payload.get("x_label", "X"))
     y_label = str(payload.get("y_label", "Y"))
+    right_axis = str(payload.get("price_axis", "right")).lower() != "left"
 
-    left, top, right, bottom = 100, 90, width - 70, height - 100
+    left = 88 if not right_axis else 52
+    top, right, bottom = 84, width - 72, height - 104
     chart_w, chart_h = right - left, bottom - top
 
-    # chart panel
     draw.rounded_rectangle(
-        (left - 12, top - 12, right + 12, bottom + 12),
-        radius=14,
-        fill=(255, 255, 255, 255),
-        outline=(226, 232, 240, 255),
+        (left - 14, top - 14, right + 14, bottom + 14),
+        radius=16,
+        fill=(14, 28, 46, 255),
+        outline=(45, 70, 96, 255),
         width=2,
     )
 
-    # Gather y range across all series
     all_y: list[float] = []
-    max_points = 0
     for s in payload["series"]:
-        ys = [float(pt["y"]) for pt in s["points"]]
-        all_y.extend(ys)
-        max_points = max(max_points, len(ys))
+        all_y.extend([float(pt["y"]) for pt in s["points"]])
     y_min, y_max = min(all_y), max(all_y)
-    pad = (y_max - y_min) * 0.08 if y_max != y_min else 1.0
+    pad = (y_max - y_min) * 0.12 if y_max != y_min else 1.0
     y_min -= pad
     y_max += pad
 
@@ -124,77 +119,77 @@ def main() -> int:
         yy = top + (y_max - y) / (y_max - y_min) * chart_h
         return x, yy
 
-    # Grid + y ticks
     y_ticks = _nice_ticks(y_min, y_max, ticks=6)
     for tick in y_ticks:
         y = top + (y_max - tick) / (y_max - y_min) * chart_h
-        draw.line([(left, y), (right, y)], fill=(226, 232, 240, 255), width=1)
-        draw.text((20, y - 9), f"{tick:.2f}", fill=(100, 116, 139, 255), font=axis_font)
+        draw.line([(left, y), (right, y)], fill=(50, 74, 100, 190), width=1)
+        text = f"{tick:.2f}"
+        if right_axis:
+            draw.text((right + 10, y - 8), text, fill=(151, 176, 205, 255), font=axis_font)
+        else:
+            draw.text((14, y - 8), text, fill=(151, 176, 205, 255), font=axis_font)
 
-    # Axes
-    draw.line([(left, top), (left, bottom)], fill=(148, 163, 184, 255), width=2)
-    draw.line([(left, bottom), (right, bottom)], fill=(148, 163, 184, 255), width=2)
-
-    # X ticks based on first series labels (sampled)
     x_labels = [str(pt["x"]) for pt in payload["series"][0]["points"]]
-    if len(x_labels) <= 10:
+    if len(x_labels) <= 8:
         tick_indexes = list(range(len(x_labels)))
     else:
-        step = max(1, len(x_labels) // 8)
+        step = max(1, len(x_labels) // 6)
         tick_indexes = list(range(0, len(x_labels), step))
         if tick_indexes[-1] != len(x_labels) - 1:
             tick_indexes.append(len(x_labels) - 1)
 
     for idx in tick_indexes:
         x, _ = to_xy(idx, y_ticks[0], len(x_labels))
-        draw.line([(x, bottom), (x, bottom + 5)], fill=(148, 163, 184, 255), width=1)
-        draw.text((x - 18, bottom + 10), x_labels[idx], fill=(100, 116, 139, 255), font=axis_font)
+        draw.line([(x, top), (x, bottom)], fill=(33, 53, 74, 120), width=1)
+        draw.text((x - 20, bottom + 8), x_labels[idx], fill=(151, 176, 205, 255), font=axis_font)
 
-    # Plot series
+    draw.line([(left, bottom), (right, bottom)], fill=(92, 122, 156, 255), width=2)
+    if right_axis:
+        draw.line([(right, top), (right, bottom)], fill=(92, 122, 156, 255), width=2)
+    else:
+        draw.line([(left, top), (left, bottom)], fill=(92, 122, 156, 255), width=2)
+
     for s_idx, s in enumerate(payload["series"]):
         color = PALETTE[s_idx % len(PALETTE)]
         points = s["points"]
         path = [to_xy(i, float(pt["y"]), len(points)) for i, pt in enumerate(points)]
 
-        # area fill for single-series charts
         if len(payload["series"]) == 1:
             area = path + [(path[-1][0], bottom), (path[0][0], bottom)]
-            draw.polygon(area, fill=(color[0], color[1], color[2], 38))
+            draw.polygon(area, fill=(color[0], color[1], color[2], 45))
+            for i in range(1, 5):
+                y_offset = int(i * 3)
+                draw.line([(p[0], min(bottom, p[1] + y_offset)) for p in path], fill=(color[0], color[1], color[2], 12), width=3)
 
-        # soft shadow + main line
-        shadow_path = [(x, y + 1.5) for x, y in path]
-        draw.line(shadow_path, fill=(15, 23, 42, 70), width=5)
+        draw.line([(x, y + 2) for x, y in path], fill=(0, 0, 0, 70), width=5)
         draw.line(path, fill=color + (255,), width=4)
 
-        # markers: sparse for readability
-        mark_step = 1 if len(path) <= 12 else 2
+        step = 1 if len(path) <= 12 else max(2, len(path) // 8)
         for idx, (x, y) in enumerate(path):
-            if idx % mark_step != 0 and idx != len(path) - 1:
+            if idx % step != 0 and idx != len(path) - 1:
                 continue
             r = 3
-            draw.ellipse((x - r, y - r, x + r, y + r), fill=(255, 255, 255, 255), outline=color + (255,), width=2)
+            draw.ellipse((x - r, y - r, x + r, y + r), fill=(14, 28, 46, 255), outline=color + (255,), width=2)
 
-    # Title and labels
-    draw.text((left, 30), title, fill=(15, 23, 42, 255), font=title_font)
-    draw.text((right - 60, bottom + 45), x_label, fill=(71, 85, 105, 255), font=label_font)
-    draw.text((20, top - 30), y_label, fill=(71, 85, 105, 255), font=label_font)
+    draw.text((left, 28), title, fill=(223, 235, 248, 255), font=title_font)
+    draw.text((right - 60, bottom + 38), x_label, fill=(172, 194, 220, 255), font=label_font)
+    draw.text((18, top - 28), y_label, fill=(172, 194, 220, 255), font=label_font)
 
-    # Legend
     legend_x = right - 330
     legend_y = top + 8
     legend_h = max(34, 24 * len(payload["series"]) + 10)
     draw.rounded_rectangle(
         (legend_x - 12, legend_y - 6, right - 8, legend_y + legend_h),
         radius=10,
-        fill=(255, 255, 255, 230),
-        outline=(226, 232, 240, 255),
+        fill=(18, 35, 56, 230),
+        outline=(45, 70, 96, 255),
         width=1,
     )
     for s_idx, s in enumerate(payload["series"]):
         color = PALETTE[s_idx % len(PALETTE)]
         y = legend_y + s_idx * 24
         draw.line([(legend_x, y + 8), (legend_x + 24, y + 8)], fill=color + (255,), width=4)
-        draw.text((legend_x + 30, y), str(s.get("name", f"series-{s_idx+1}")), fill=(51, 65, 85, 255), font=legend_font)
+        draw.text((legend_x + 30, y), str(s.get("name", f"series-{s_idx+1}")), fill=(206, 223, 242, 255), font=legend_font)
 
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)

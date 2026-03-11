@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -8,6 +10,28 @@ from typing import Any
 from investment_agent.models.portfolio import PortfolioState
 from investment_agent.providers.market_data import MarketQuote
 from investment_agent.providers.news_data import NewsItem
+
+
+def _normalize_text(value: Any) -> str:
+    normalized = re.sub(r"\s+", " ", str(value or "").strip().lower())
+    return normalized
+
+
+def _canonicalize_json(value: Any) -> str:
+    if value is None:
+        return ""
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _derive_asset_code(signal_type: str, evidence: dict[str, Any]) -> str:
+    breach = evidence.get("breach") if isinstance(evidence, dict) else None
+    if isinstance(breach, dict) and breach.get("category"):
+        return _normalize_text(breach["category"])
+    for key in ("asset_code", "symbol", "asset", "theme", "category"):
+        value = evidence.get(key) if isinstance(evidence, dict) else None
+        if value:
+            return _normalize_text(value)
+    return _normalize_text(signal_type) or "unknown"
 
 
 class InvestmentRepository:
@@ -19,7 +43,29 @@ class InvestmentRepository:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with sqlite3.connect(self.db_path) as connection:
             connection.executescript(self.schema_path.read_text(encoding="utf-8"))
+            self._apply_schema_migrations(connection)
             connection.commit()
+
+    def _apply_schema_migrations(self, connection: sqlite3.Connection) -> None:
+        columns = {
+            str(row[1])
+            for row in connection.execute("PRAGMA table_info(risk_signals)").fetchall()
+        }
+        if "dedupe_key" not in columns:
+            connection.execute("ALTER TABLE risk_signals ADD COLUMN dedupe_key TEXT")
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_risk_signals_status_type_date
+            ON risk_signals(status, signal_type, signal_time)
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_risk_signals_dedupe_open
+            ON risk_signals(status, dedupe_key, signal_time)
+            """
+        )
 
     def seed_portfolio_state(self, state: PortfolioState) -> None:
         grouped = state.grouped_values()
@@ -231,6 +277,27 @@ class InvestmentRepository:
         result["deviation_json"] = json.loads(result["deviation_json"])
         return result
 
+    def _build_risk_signal_dedupe_key(
+        self,
+        signal_time: str,
+        signal_type: str,
+        severity: str,
+        message: str,
+        evidence: dict[str, Any],
+    ) -> str:
+        signal_date = str(signal_time).split(" ", 1)[0]
+        asset_code = _derive_asset_code(signal_type, evidence)
+        normalized_evidence = _canonicalize_json(evidence)
+        evidence_hash = hashlib.sha1(normalized_evidence.encode("utf-8")).hexdigest()[:16]
+        parts = [
+            signal_date,
+            _normalize_text(signal_type),
+            asset_code,
+            _normalize_text(severity),
+            evidence_hash,
+        ]
+        return "|".join(parts)
+
     def store_risk_signal(
         self,
         signal_time: str,
@@ -240,6 +307,13 @@ class InvestmentRepository:
         evidence: dict[str, Any],
         status: str = "open",
     ) -> int:
+        dedupe_key = self._build_risk_signal_dedupe_key(
+            signal_time=signal_time,
+            signal_type=signal_type,
+            severity=severity,
+            message=message,
+            evidence=evidence,
+        )
         with sqlite3.connect(self.db_path) as connection:
             connection.row_factory = sqlite3.Row
             existing = connection.execute(
@@ -248,25 +322,32 @@ class InvestmentRepository:
                 FROM risk_signals
                 WHERE date(signal_time) = date(?)
                   AND signal_type = ?
-                  AND severity = ?
-                  AND message = ?
                   AND status = ?
+                  AND (
+                        dedupe_key = ?
+                     OR (
+                        severity = ?
+                        AND message = ?
+                     )
+                  )
                 ORDER BY id DESC
                 LIMIT 1
                 """,
-                (signal_time, signal_type, severity, message, status),
+                (signal_time, signal_type, status, dedupe_key, severity, message),
             ).fetchone()
             if existing is not None:
                 connection.execute(
                     """
                     UPDATE risk_signals
-                    SET signal_time = ?, severity = ?, evidence_json = ?
+                    SET signal_time = ?, severity = ?, message = ?, evidence_json = ?, dedupe_key = ?
                     WHERE id = ?
                     """,
                     (
                         signal_time,
                         severity,
-                        json.dumps(evidence, ensure_ascii=False, sort_keys=True),
+                        message,
+                        _canonicalize_json(evidence),
+                        dedupe_key,
                         int(existing["id"]),
                     ),
                 )
@@ -276,15 +357,16 @@ class InvestmentRepository:
             cursor = connection.execute(
                 """
                 INSERT INTO risk_signals (
-                    signal_time, signal_type, severity, message, evidence_json, status
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                    signal_time, signal_type, severity, message, evidence_json, dedupe_key, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     signal_time,
                     signal_type,
                     severity,
                     message,
-                    json.dumps(evidence, ensure_ascii=False, sort_keys=True),
+                    _canonicalize_json(evidence),
+                    dedupe_key,
                     status,
                 ),
             )
@@ -296,6 +378,7 @@ class InvestmentRepository:
         signal_types: list[str],
         active_messages_by_type: dict[str, set[str]],
         signal_date: str | None = None,
+        active_dedupe_keys_by_type: dict[str, set[str]] | None = None,
     ) -> int:
         if not signal_types:
             return 0
@@ -304,7 +387,7 @@ class InvestmentRepository:
             connection.row_factory = sqlite3.Row
             placeholders = ", ".join("?" for _ in signal_types)
             query = f"""
-                SELECT id, signal_type, message
+                SELECT id, signal_type, message, dedupe_key
                 FROM risk_signals
                 WHERE status = 'open' AND signal_type IN ({placeholders})
                 """
@@ -314,9 +397,13 @@ class InvestmentRepository:
                 parameters = (*parameters, signal_date)
 
             rows = connection.execute(query, parameters).fetchall()
+            dedupe_map = active_dedupe_keys_by_type or {}
             for row in rows:
                 signal_type = str(row["signal_type"])
                 message = str(row["message"])
+                dedupe_key = str(row["dedupe_key"] or "")
+                if dedupe_key and dedupe_key in dedupe_map.get(signal_type, set()):
+                    continue
                 if message in active_messages_by_type.get(signal_type, set()):
                     continue
                 connection.execute(
@@ -517,6 +604,73 @@ class InvestmentRepository:
         result = dict(row)
         result["content_json"] = json.loads(result["content_json"]) if result["content_json"] else None
         return result
+
+    def cleanup_legacy_same_day_duplicates(self, dry_run: bool = True) -> dict[str, int]:
+        statements = {
+            "risk_signals": """
+                DELETE FROM risk_signals
+                WHERE id IN (
+                    SELECT t.id
+                    FROM risk_signals t
+                    JOIN (
+                        SELECT date(signal_time) AS signal_date, signal_type, status, MAX(id) AS keep_id
+                        FROM risk_signals
+                        GROUP BY date(signal_time), signal_type, status
+                        HAVING COUNT(*) > 1
+                    ) d
+                      ON date(t.signal_time) = d.signal_date
+                     AND t.signal_type = d.signal_type
+                     AND t.status = d.status
+                    WHERE t.id <> d.keep_id
+                )
+            """,
+            "investment_suggestions": """
+                DELETE FROM investment_suggestions
+                WHERE id IN (
+                    SELECT t.id
+                    FROM investment_suggestions t
+                    JOIN (
+                        SELECT date(suggestion_time) AS suggestion_date, suggestion_type, MAX(id) AS keep_id
+                        FROM investment_suggestions
+                        GROUP BY date(suggestion_time), suggestion_type
+                        HAVING COUNT(*) > 1
+                    ) d
+                      ON date(t.suggestion_time) = d.suggestion_date
+                     AND t.suggestion_type = d.suggestion_type
+                    WHERE t.id <> d.keep_id
+                )
+            """,
+            "reports": """
+                DELETE FROM reports
+                WHERE id IN (
+                    SELECT t.id
+                    FROM reports t
+                    JOIN (
+                        SELECT date(report_time) AS report_date, report_type, MAX(id) AS keep_id
+                        FROM reports
+                        GROUP BY date(report_time), report_type
+                        HAVING COUNT(*) > 1
+                    ) d
+                      ON date(t.report_time) = d.report_date
+                     AND t.report_type = d.report_type
+                    WHERE t.id <> d.keep_id
+                )
+            """,
+        }
+
+        deleted_counts = {"risk_signals": 0, "investment_suggestions": 0, "reports": 0}
+        with sqlite3.connect(self.db_path) as connection:
+            self._apply_schema_migrations(connection)
+            for table_name, sql in statements.items():
+                cursor = connection.execute(sql)
+                deleted_counts[table_name] = int(cursor.rowcount or 0)
+            if dry_run:
+                connection.rollback()
+            else:
+                connection.commit()
+        deleted_counts["total_deleted"] = sum(deleted_counts.values())
+        deleted_counts["dry_run"] = 1 if dry_run else 0
+        return deleted_counts
 
     def count_rows(self, table_name: str) -> int:
         with sqlite3.connect(self.db_path) as connection:

@@ -44,6 +44,15 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("daily-review", help="Run the daily review workflow")
     subparsers.add_parser("weekly-review", help="Run the weekly review workflow")
     subparsers.add_parser("monthly-review", help="Run the monthly review workflow")
+    cleanup_parser = subparsers.add_parser(
+        "cleanup-legacy-duplicates",
+        help="Cleanup pre-idempotency same-day duplicate open risk signals/suggestions/reports",
+    )
+    cleanup_parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply deletions (default is dry-run preview)",
+    )
     import_parser = subparsers.add_parser("import-snapshot", help="Import portfolio screenshots with vision-first fallback")
     import_parser.add_argument("--portfolio-image", help="Path to the holdings overview screenshot")
     import_parser.add_argument("--gold-image", help="Path to the gold position screenshot")
@@ -186,6 +195,26 @@ def cmd_monthly_review() -> int:
     return 0
 
 
+def cmd_cleanup_legacy_duplicates(apply: bool) -> int:
+    paths = discover_paths()
+    repository = InvestmentRepository(paths.db_path, paths.schema_path)
+    repository.initialize()
+    result = repository.cleanup_legacy_same_day_duplicates(dry_run=not apply)
+    print(
+        json.dumps(
+            {
+                "db_path": str(paths.db_path),
+                "mode": "apply" if apply else "dry_run",
+                "deleted": result,
+                "command": "python3 -m investment_agent.main cleanup-legacy-duplicates --apply",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0
+
+
 def cmd_signal_review() -> int:
     paths = discover_paths()
     current_state = load_portfolio_state(paths.portfolio_state_path)
@@ -267,6 +296,8 @@ def main() -> int:
         return cmd_weekly_review()
     if args.command == "monthly-review":
         return cmd_monthly_review()
+    if args.command == "cleanup-legacy-duplicates":
+        return cmd_cleanup_legacy_duplicates(args.apply)
     if args.command == "import-snapshot":
         return cmd_import_snapshot(args.portfolio_image, args.gold_image)
     if args.command == "ocr-portfolio":

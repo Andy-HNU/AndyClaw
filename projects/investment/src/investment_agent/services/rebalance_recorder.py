@@ -15,10 +15,24 @@ def persist_rebalance_review(
         )
         for breach in rebalance_result["breaches"]
     }
+    active_dedupe_keys = {
+        repository._build_risk_signal_dedupe_key(
+            signal_time=str(analysis["updated_at"]),
+            signal_type="allocation_drift",
+            severity=("high" if abs(float(breach["current_pct"]) - float(breach["target_pct"])) >= 15 else "medium"),
+            message=(
+                f"{breach['category']} is {breach['direction']} "
+                f"({breach['current_pct']}% vs target {breach['target_pct']}%)"
+            ),
+            evidence={"breach": breach, "priority_action": rebalance_result["priority_action"]},
+        )
+        for breach in rebalance_result["breaches"]
+    }
     closed_signal_count = repository.close_open_risk_signals(
         signal_types=["allocation_drift"],
         active_messages_by_type={"allocation_drift": active_messages},
         signal_date=str(analysis["updated_at"]),
+        active_dedupe_keys_by_type={"allocation_drift": active_dedupe_keys},
     )
     suggestion_id = repository.store_investment_suggestion(
         suggestion_time=str(analysis["updated_at"]),
