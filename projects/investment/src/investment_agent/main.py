@@ -13,6 +13,7 @@ from investment_agent.providers import (
     refresh_market_quotes,
 )
 from investment_agent.services.monthly_planner import build_monthly_plan
+from investment_agent.services.intraday_proxy_engine import build_intraday_proxy_review
 from investment_agent.services.ocr_importer import build_ocr_portfolio_import
 from investment_agent.services.portfolio_analyzer import (
     build_portfolio_analysis,
@@ -221,6 +222,11 @@ def cmd_signal_review() -> int:
     previous_state = load_portfolio_state(paths.previous_portfolio_state_path)
     research = load_asset_research(paths.asset_research_path)
     review = build_asset_signal_review(current_state, previous_state, research)
+    review["intraday_market"] = build_intraday_proxy_review(
+        portfolio_state=current_state,
+        config_path=paths.intraday_proxy_config_path,
+        realtime_path=paths.intraday_realtime_path,
+    )
     print(json.dumps(review, ensure_ascii=False, indent=2))
     return 0
 

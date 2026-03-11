@@ -16,6 +16,7 @@ from investment_agent.services.portfolio_analyzer import (
     load_target_allocation,
 )
 from investment_agent.services.chart_artifacts import render_daily_price_chart
+from investment_agent.services.intraday_proxy_engine import build_intraday_proxy_review
 from investment_agent.services.rebalancing_engine import evaluate_rebalance
 from investment_agent.services.report_generator import generate_daily_report
 from investment_agent.services.signal_engine import build_asset_signal_review, load_asset_research
@@ -84,6 +85,11 @@ def run_daily_review(
     targets = load_target_allocation(paths.target_allocation_path)
     rebalance_result = evaluate_rebalance(analysis["allocations_pct"], targets)
     signal_review = build_asset_signal_review(portfolio_state, previous_portfolio_state, research_by_code)
+    intraday_market = build_intraday_proxy_review(
+        portfolio_state=portfolio_state,
+        config_path=paths.intraday_proxy_config_path,
+        realtime_path=paths.intraday_realtime_path,
+    )
     chart_candidates = sorted(
         [asset for asset in portfolio_state.assets if asset.category != "cash"],
         key=lambda asset: asset.value,
@@ -120,6 +126,7 @@ def run_daily_review(
         risk_signals=list(signal_review["signals"]),
         news_items=news_items,
         chart_artifacts=[chart_result],
+        intraday_market=intraday_market,
         data_quality=data_quality,
         provider_notes=provider_notes,
     )
@@ -136,6 +143,7 @@ def run_daily_review(
         "news_refresh": news_refresh,
         "rebalance": rebalance_result,
         "signal_review": signal_review,
+        "intraday_market": intraday_market,
         "chart_artifacts": [chart_result],
         "report_id": report_id,
         "report": report,

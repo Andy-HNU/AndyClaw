@@ -28,6 +28,7 @@ def generate_daily_report(
     risk_signals: list[dict[str, object]],
     news_items: list[dict[str, object]],
     chart_artifacts: list[dict[str, object]] | None = None,
+    intraday_market: dict[str, object] | None = None,
     data_quality: str | None = None,
     provider_notes: dict[str, object] | None = None,
 ) -> dict[str, object]:
@@ -51,8 +52,16 @@ def generate_daily_report(
         {"section_id": "rebalance_review", "title": "再平衡检查", "items": [rebalance_result]},
         {"section_id": "risk_summary", "title": "今日风险摘要", "items": risk_signals},
         {"section_id": "news_summary", "title": "今日板块新闻", "items": news_items},
-        {"section_id": "action_items", "title": "建议动作", "items": action_items},
     ]
+    if intraday_market is not None:
+        sections.append(
+            {
+                "section_id": "intraday_proxy_sentiment",
+                "title": "盘中代理与市场情绪",
+                "items": list(intraday_market.get("funds", [])),
+            }
+        )
+    sections.append({"section_id": "action_items", "title": "建议动作", "items": action_items})
     if data_quality is not None:
         sections.append(
             {
@@ -73,6 +82,24 @@ def generate_daily_report(
     ] or ["- 暂无可用趋势图表"]
     risk_lines = [f"- {item['signal_type']}: {item['message']}" for item in risk_signals[:5]] or ["- 暂无新增风险"]
     news_lines = [f"- [{item['topic']}] {item['title']}" for item in news_items[:5]] or ["- 暂无新闻摘要"]
+    intraday_lines = []
+    for item in (intraday_market or {}).get("funds", []):
+        if item.get("status") != "available":
+            intraday_lines.append(f"- {item['fund_name']}: 盘中代理不可用（{item.get('reason', 'unknown')}）")
+            continue
+        band = item["expected_close_band"]
+        intraday_lines.append(
+            (
+                f"- {item['fund_name']}: proxy_nav_now={item['proxy_nav_now']:.4f}, "
+                f"expected_close_band={band['low']:.4f}~{band['high']:.4f}, "
+                f"volume_state={item['volume_state']}, "
+                f"sentiment_label={item['sentiment_label']}, "
+                f"confidence={item['confidence']['label']}({item['confidence']['score']:.2f}), "
+                f"suggested_action={item['suggested_action']}"
+            )
+        )
+    if not intraday_lines:
+        intraday_lines = ["- 暂无盘中代理数据"]
     action_lines = [f"- {item}" for item in action_items] or ["- 保持观察，等待更多证据"]
     content_md = "\n".join(
         [
@@ -95,6 +122,9 @@ def generate_daily_report(
             "",
             "## 今日板块新闻",
             *news_lines,
+            "",
+            "## 盘中代理与市场情绪",
+            *intraday_lines,
             "",
             "## 建议动作",
             *action_lines,
@@ -123,6 +153,7 @@ def generate_daily_report(
         "rebalance": rebalance_result,
         "risk_summary": risk_signals,
         "news_observations": news_items,
+        "intraday_market": intraday_market,
         "action_items": action_items,
         "data_quality": data_quality,
         "provider_notes": provider_notes,

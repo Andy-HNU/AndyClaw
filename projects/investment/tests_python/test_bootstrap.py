@@ -26,6 +26,10 @@ from investment_agent.providers import (
 )
 from investment_agent.providers.factory import AkshareMarketProvider, AkshareNewsProvider
 from investment_agent.services.chart_artifacts import render_daily_price_chart
+from investment_agent.services.intraday_proxy_engine import (
+    build_intraday_proxy_review,
+    classify_intraday_sentiment,
+)
 from investment_agent.services.monthly_planner import build_monthly_plan
 from investment_agent.services.ocr_importer import (
     build_ocr_portfolio_import,
@@ -642,10 +646,73 @@ class InvestmentBootstrapTests(unittest.TestCase):
         section_ids = [item["section_id"] for item in report["content_json"]["sections"]]
         self.assertEqual(
             section_ids,
-            ["portfolio_snapshot", "trend_charts", "rebalance_review", "risk_summary", "news_summary", "action_items"],
+            [
+                "portfolio_snapshot",
+                "trend_charts",
+                "rebalance_review",
+                "risk_summary",
+                "news_summary",
+                "action_items",
+            ],
         )
         self.assertIn("今日仓位快照", report["content_md"])
         self.assertIn("chart_artifacts", report["content_json"])
+
+    def test_intraday_proxy_review_uses_holdings_and_fallback_paths(self) -> None:
+        current_state = load_portfolio_state(self.paths.portfolio_state_path)
+
+        review = build_intraday_proxy_review(
+            portfolio_state=current_state,
+            config_path=self.paths.intraday_proxy_config_path,
+            realtime_path=self.paths.intraday_realtime_path,
+        )
+
+        self.assertEqual(review["status"], "available")
+        by_code = {item["fund_code"]: item for item in review["funds"]}
+        self.assertEqual(by_code["012734"]["proxy_method"], "holdings")
+        self.assertGreater(len(by_code["012734"]["driver_breakdown"]), 1)
+        self.assertEqual(by_code["011609"]["proxy_method"], "fallback_mapping")
+        self.assertEqual(len(by_code["011609"]["driver_breakdown"]), 1)
+        self.assertEqual(by_code["012734"]["data_quality"], "real")
+        self.assertIsNotNone(by_code["012734"]["expected_close_band"])
+
+    def test_intraday_sentiment_classification_outputs_evidence(self) -> None:
+        panic = classify_intraday_sentiment(
+            {
+                "price_trend_pct": -2.6,
+                "volume_ratio": 1.9,
+                "amplitude_pct": 4.8,
+                "drawdown_from_high_pct": -2.4,
+            }
+        )
+        chase = classify_intraday_sentiment(
+            {
+                "price_trend_pct": 1.8,
+                "volume_ratio": 1.5,
+                "amplitude_pct": 2.6,
+                "drawdown_from_high_pct": -0.4,
+            }
+        )
+
+        self.assertEqual(panic["label"], "intraday_panic_selloff")
+        self.assertIn("matched_rules", panic["evidence"])
+        self.assertEqual(chase["label"], "intraday_momentum_chase")
+        self.assertIn("price_trend_pct", chase["evidence"])
+
+    def test_intraday_proxy_review_returns_structured_unavailable_when_realtime_missing(self) -> None:
+        current_state = load_portfolio_state(self.paths.portfolio_state_path)
+        missing_path = Path(self.tempdir.name) / "missing_intraday_realtime.json"
+
+        review = build_intraday_proxy_review(
+            portfolio_state=current_state,
+            config_path=self.paths.intraday_proxy_config_path,
+            realtime_path=missing_path,
+        )
+
+        self.assertEqual(review["status"], "unavailable")
+        self.assertEqual(review["reason"], "realtime_feed_missing")
+        self.assertTrue(all(item["status"] == "unavailable" for item in review["funds"]))
+        self.assertTrue(all(item["proxy_nav_now"] is None for item in review["funds"]))
 
     def test_weekly_review_workflow_persists_weekly_report(self) -> None:
         self.repository.initialize()
@@ -675,9 +742,13 @@ class InvestmentBootstrapTests(unittest.TestCase):
         self.assertEqual(latest_report["content_json"]["schema_version"], "1.0")
         self.assertIn("action_items", latest_report["content_json"])
         self.assertIn("chart_artifacts", latest_report["content_json"])
+        self.assertIn("intraday_market", latest_report["content_json"])
+        section_ids = [item["section_id"] for item in latest_report["content_json"]["sections"]]
+        self.assertIn("intraday_proxy_sentiment", section_ids)
         self.assertIn(latest_report["content_json"]["data_quality"], {"real", "fallback", "mixed"})
         self.assertIn("provider_notes", latest_report["content_json"])
         self.assertIn("data_quality", latest_report["content_json"]["summary"])
+        self.assertEqual(result["intraday_market"]["status"], "available")
 
     def test_daily_chart_renderer_outputs_png_when_history_is_available(self) -> None:
         chart = render_daily_price_chart(

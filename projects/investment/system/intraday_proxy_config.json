@@ -1,0 +1,25 @@
+{
+  "funds": {
+    "012734": {
+      "fund_name": "易方达人工智能ETF联接C",
+      "minimum_holdings_coverage": 0.6,
+      "base_band_pct": 0.006,
+      "holdings": [
+        {"driver_code": "cambricon", "driver_name": "寒武纪", "weight": 0.42},
+        {"driver_code": "zhongji_xuchuang", "driver_name": "中际旭创", "weight": 0.33},
+        {"driver_code": "iflytek", "driver_name": "科大讯飞", "weight": 0.25}
+      ],
+      "fallback_mapping": [
+        {"driver_code": "csi_ai_theme", "driver_name": "人工智能主题指数", "weight": 1.0}
+      ]
+    },
+    "011609": {
+      "fund_name": "易方达科创50联接C",
+      "minimum_holdings_coverage": 0.6,
+      "base_band_pct": 0.005,
+      "fallback_mapping": [
+        {"driver_code": "star50_index", "driver_name": "科创50指数", "weight": 1.0}
+      ]
+    }
+  }
+}

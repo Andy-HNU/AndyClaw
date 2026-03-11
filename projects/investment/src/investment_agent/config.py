@@ -18,6 +18,10 @@ class ProjectPaths:
     news_data_primary_path: Path
     news_data_backup_path: Path
     asset_research_path: Path
+    intraday_proxy_config_path: Path
+    intraday_realtime_path: Path
+    report_artifacts_dir: Path
+    line_chart_skill_script_path: Path
 
 
 def discover_paths() -> ProjectPaths:
@@ -36,4 +40,10 @@ def discover_paths() -> ProjectPaths:
         news_data_primary_path=project_root / "system" / "news_primary.json",
         news_data_backup_path=project_root / "system" / "news_backup.json",
         asset_research_path=project_root / "system" / "asset_research.json",
+        intraday_proxy_config_path=project_root / "system" / "intraday_proxy_config.json",
+        intraday_realtime_path=project_root / "system" / "intraday_realtime.json",
+        report_artifacts_dir=project_root / "staging" / "reports",
+        line_chart_skill_script_path=(
+            project_root / "skills" / "line-chart-plotter" / "scripts" / "plot_line_chart.py"
+        ),
     )
