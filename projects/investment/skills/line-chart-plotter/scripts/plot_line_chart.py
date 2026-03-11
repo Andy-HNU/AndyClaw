@@ -84,10 +84,10 @@ def main() -> int:
     img = Image.new("RGBA", (width, height), (11, 20, 34, 255))
     draw = ImageDraw.Draw(img)
 
-    title_font = _load_font(28)
-    label_font = _load_font(18)
-    axis_font = _load_font(15)
-    legend_font = _load_font(15)
+    title_font = _load_font(34)
+    label_font = _load_font(24)
+    axis_font = _load_font(20)
+    legend_font = _load_font(20)
 
     title = str(payload.get("title", "Line Chart"))
     x_label = str(payload.get("x_label", "X"))
@@ -154,13 +154,7 @@ def main() -> int:
         points = s["points"]
         path = [to_xy(i, float(pt["y"]), len(points)) for i, pt in enumerate(points)]
 
-        if len(payload["series"]) == 1:
-            area = path + [(path[-1][0], bottom), (path[0][0], bottom)]
-            draw.polygon(area, fill=(color[0], color[1], color[2], 45))
-            for i in range(1, 5):
-                y_offset = int(i * 3)
-                draw.line([(p[0], min(bottom, p[1] + y_offset)) for p in path], fill=(color[0], color[1], color[2], 12), width=3)
-
+        # keep the area below line consistent with chart background (no white/area fill)
         draw.line([(x, y + 2) for x, y in path], fill=(0, 0, 0, 70), width=5)
         draw.line(path, fill=color + (255,), width=4)
 
