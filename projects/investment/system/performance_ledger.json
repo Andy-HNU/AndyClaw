@@ -1,0 +1,15 @@
+{
+  "baseline": {
+    "date": "2026-03-11",
+    "total_asset": 49802.47,
+    "source": "inferred_from_first_complete_screenshots"
+  },
+  "entries": [
+    {
+      "date": "2026-03-12",
+      "total_asset": 49101.29,
+      "pnl": -701.18,
+      "return_pct": -1.4079
+    }
+  ]
+}
