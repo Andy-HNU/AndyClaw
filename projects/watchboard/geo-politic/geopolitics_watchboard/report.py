@@ -40,7 +40,12 @@ def classify_bucket(title: str) -> str:
     return "noise"
 
 
-def render_report(topic: str, items: list[NewsItem], generated_at: datetime | None = None) -> str:
+def render_report(
+    topic: str,
+    items: list[NewsItem],
+    impact_template: list[str] | None = None,
+    generated_at: datetime | None = None,
+) -> str:
     generated = (generated_at or datetime.now(timezone.utc)).replace(microsecond=0)
     buckets = {
         "escalation": [item for item in items if classify_bucket(item.title) == "escalation"],
@@ -54,6 +59,12 @@ def render_report(topic: str, items: list[NewsItem], generated_at: datetime | No
         f"- [{item.title}]({item.link}) | {item.source} | {item.published_at} | tier {item.tier} | tag {item.query_tag}"
         for item in items
     ] or ["- No items collected."]
+    impact_lines = impact_template or [
+        "- Gold theme: [safe-haven demand / no clear read / easing]",
+        "- Bond theme: [duration bid / no clear read / yields higher on growth or supply shock]",
+        "- Stock theme: [energy up / transport down / defense up / broad risk-off / neutral]",
+        "- Watchlist: [oil majors, airlines, shippers, defense, EM FX]",
+    ]
 
     lines = [
         f"# Watchboard Report: {topic}",
@@ -62,6 +73,9 @@ def render_report(topic: str, items: list[NewsItem], generated_at: datetime | No
         f"- Total items: {len(items)}",
         f"- Tier mix: A={tier_counts.get('A', 0)} B={tier_counts.get('B', 0)} C={tier_counts.get('C', 0)}",
         f"- Dominant query tags: {top_tags}",
+        "",
+        "## Telegram Brief",
+        *render_telegram_summary(topic, items),
         "",
         "## Headline Summary",
         lead,
@@ -76,6 +90,9 @@ def render_report(topic: str, items: list[NewsItem], generated_at: datetime | No
         f"### Noise ({len(buckets['noise'])})",
         *_bucket_lines(buckets["noise"]),
         "",
+        "## Timeline (Chronological)",
+        *render_timeline(items),
+        "",
         "## Source-Cited News",
         *news_lines,
         "",
@@ -83,12 +100,34 @@ def render_report(topic: str, items: list[NewsItem], generated_at: datetime | No
         *claim_check_lines(items),
         "",
         "## Portfolio Impact Template",
-        "- Gold theme: [safe-haven demand / no clear read / easing]",
-        "- Bond theme: [duration bid / no clear read / yields higher on growth or supply shock]",
-        "- Stock theme: [energy up / transport down / defense up / broad risk-off / neutral]",
-        "- Watchlist: [oil majors, airlines, shippers, defense, EM FX]",
+        *impact_lines,
     ]
     return "\n".join(lines).strip() + "\n"
+
+
+def render_telegram_summary(topic: str, items: list[NewsItem]) -> list[str]:
+    if not items:
+        return [f"- {topic}: no fresh items."]
+    bucket_counts = Counter(classify_bucket(item.title) for item in items)
+    top_claim = top_claim_check(items)
+    top_items = items[:3]
+    lines = [
+        f"- {topic}: E/D/N={bucket_counts.get('escalation', 0)}/{bucket_counts.get('de-escalation', 0)}/{bucket_counts.get('noise', 0)}",
+        f"- Top claim-check: {top_claim}",
+        "- Top sources:",
+    ]
+    lines.extend(
+        f"  - tier {item.tier} | {item.source} | {item.title} | {item.link}"
+        for item in top_items
+    )
+    return lines
+
+
+def render_timeline(items: list[NewsItem]) -> list[str]:
+    if not items:
+        return ["- No events collected."]
+    ordered = sorted(items, key=lambda item: item.published_at)
+    return [f"- {item.published_at} | {item.title} ({item.source}, tier {item.tier})" for item in ordered]
 
 
 def _lead_summary(
@@ -131,6 +170,20 @@ def claim_check_lines(items: list[NewsItem]) -> list[str]:
             verdict = f"partial mentions only in {len(related)} item(s)"
         lines.append(f"- {claim}: {verdict}")
     return lines
+
+
+def top_claim_check(items: list[NewsItem]) -> str:
+    ranked = []
+    for line in claim_check_lines(items):
+        if "headline support found" in line:
+            score = 2
+        elif "partial mentions" in line:
+            score = 1
+        else:
+            score = 0
+        ranked.append((score, line.removeprefix("- ")))
+    ranked.sort(key=lambda pair: pair[0], reverse=True)
+    return ranked[0][1] if ranked else "no claim-check signal"
 
 
 def supports_claim(title: str, claim: str, needles: tuple[str, ...]) -> bool:

@@ -1,6 +1,7 @@
 import unittest
 
-from geopolitics_watchboard.fetcher import assign_tier, parse_feed
+from geopolitics_watchboard.fetcher import assign_tier, dedupe_items, parse_feed
+from geopolitics_watchboard.models import NewsItem
 
 
 RSS_SAMPLE = """\
@@ -35,6 +36,28 @@ class FetcherTests(unittest.TestCase):
         self.assertEqual(assign_tier("https://www.state.gov/briefing", config), "A")
         self.assertEqual(assign_tier("https://www.reuters.com/world", config), "B")
         self.assertEqual(assign_tier("https://example.com/story", config), "C")
+
+    def test_dedupe_items_removes_near_duplicate_titles_and_tracking_urls(self) -> None:
+        items = [
+            NewsItem(
+                title="Iran warns over Hormuz shipping lane",
+                source="Reuters",
+                published_at="2026-03-12T11:00:00+00:00",
+                link="https://example.com/story?utm_source=x",
+                query_tag="shipping",
+                tier="B",
+            ),
+            NewsItem(
+                title="Iran warns over Hormuz shipping lanes",
+                source="AP",
+                published_at="2026-03-12T10:59:00+00:00",
+                link="https://example.com/story",
+                query_tag="shipping",
+                tier="B",
+            ),
+        ]
+        deduped = dedupe_items(items)
+        self.assertEqual(len(deduped), 1)
 
 
 if __name__ == "__main__":

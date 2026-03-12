@@ -1,52 +1,67 @@
 # watchboard / geo-politic
 
-`watchboard / geo-politic` is a small Python MVP for monitoring geopolitical developments across multiple topics and regions. The first runnable topic can be `iran-hormuz`, but the project is intentionally generalized so the same pipeline can be extended to Taiwan Strait, Red Sea shipping, Russia/NATO, energy chokepoints, sanctions, elections, or any future region/topic added to the source config.
+`watchboard / geo-politic` is a Python watchboard for monitoring geopolitical developments across multiple topics and regions.
 
-The package import path remains `geopolitics_watchboard` so the CLI stays stable:
+## What changed in v1.1
 
-```bash
-python3 -m geopolitics_watchboard.main run --topic "iran-hormuz"
-```
-
-The command fetches configured RSS/search feeds, normalizes headlines, assigns source confidence tiers, and writes a markdown dashboard to `/root/.openclaw/workspace/staging/reports`.
+- Multi-topic registry in `system/topics.json`.
+- Scheduler-ready CLI (`run-topic`, `run-all`, `--since-hours`).
+- Deterministic output paths with topic/date/timestamp folders.
+- Telegram-friendly summary block in each report.
+- Near-duplicate dedup and chronological timeline section.
 
 ## Project Layout
 
-- `PROJECT.md`: scope and MVP contract.
-- `agent/WORKFLOW.md`: how to add new topics and source tiers.
-- `system/sources.yaml`: tier registry and default topic queries.
-- `geopolitics_watchboard/`: CLI, fetcher, normalization, and renderer.
-- `tests/`: basic parsing, tiering, and report tests.
-- `samples/iran-hormuz-report.md`: sample dashboard output.
+- `system/sources.yaml`: global feed and source-tier config.
+- `system/topics.json`: per-topic queries, source preferences, optional impact template.
+- `geopolitics_watchboard/main.py`: CLI command surface.
+- `geopolitics_watchboard/fetcher.py`: fetch + normalize + dedup.
+- `geopolitics_watchboard/report.py`: report rendering (telegram summary, buckets, timeline, claim-check).
+- `tests/`: unit tests for topic loading, dedup, timeline, and summary rendering.
 
-## Run
-
-From this directory:
+## Commands
 
 ```bash
 python3 -m unittest discover -s tests -v
-python3 -m geopolitics_watchboard.main run --topic "iran-hormuz"
+
+# one topic
+python3 -m geopolitics_watchboard.main run-topic --topic iran-hormuz --since-hours 24
+
+# all topics in registry
+python3 -m geopolitics_watchboard.main run-all --since-hours 12
 ```
 
-The CLI prints the output file path after rendering the report.
+Backward-compatible alias still works:
 
-## Extend To More Regions Or Topics
+```bash
+python3 -m geopolitics_watchboard.main run --topic iran-hormuz
+```
 
-1. Add or edit a topic entry in `system/sources.yaml`.
-2. Add query tags that represent the scenario you want to track.
-3. Optionally add or refine tier A/B/C source hostnames.
-4. Run the CLI with the new topic key.
+## Output locations
 
-The renderer is topic-agnostic. Any topic with configured queries can reuse the same headline summary, bucket classification, claim-check section, and portfolio impact template.
+Reports are written to:
 
-## Source Tiers
+```text
+/root/.openclaw/workspace/staging/reports/<topic>/<YYYY-MM-DD>/<YYYYMMDDTHHMMSSZ>.md
+```
 
-- Tier A: primary or official sources.
-- Tier B: major mainstream reporting and wire services.
-- Tier C: secondary aggregators and lower-confidence signal sources.
+Example:
 
-These tiers are heuristic confidence markers for dashboard triage, not truth guarantees.
+```text
+/root/.openclaw/workspace/staging/reports/iran-hormuz/2026-03-12/20260312T045500Z.md
+```
 
-## Investment Integration Note
+## Add a new topic
 
-This project is independent from `projects/investment`. The intended integration point is file-based: the investment workflow can ingest rendered markdown from `/root/.openclaw/workspace/staging/reports` or call this CLI as a pre-step when geopolitical context is needed.
+1. Edit `system/topics.json`.
+2. Add a topic key under `topics` with:
+   - `queries`: list of `{tag, query}`
+   - `source_preferences.feeds` (optional)
+   - `impact_template` (optional)
+3. Run `run-topic` with your topic key.
+
+## Source tiers
+
+- Tier A: primary/official sources
+- Tier B: major mainstream/wire sources
+- Tier C: secondary/aggregator signal

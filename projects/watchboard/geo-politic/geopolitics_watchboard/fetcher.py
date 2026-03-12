@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from difflib import SequenceMatcher
 from email.utils import parsedate_to_datetime
 from html import unescape
 from typing import Iterable
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import parse_qsl, quote_plus, urlencode, urlparse, urlunparse
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree as ET
 
@@ -111,29 +112,56 @@ def _parse_atom(root: ET.Element, feed_name: str, query_tag: str, config: dict) 
 
 
 def dedupe_items(items: Iterable[NewsItem]) -> list[NewsItem]:
-    seen: set[tuple[str, str]] = set()
     ordered: list[NewsItem] = []
     for item in sorted(items, key=lambda news: news.published_at, reverse=True):
-        key = (item.title.lower(), item.link)
-        if key in seen:
+        if _is_near_duplicate(item, ordered):
             continue
-        seen.add(key)
         ordered.append(item)
     return ordered
 
 
-def collect_items(topic: str, config: dict) -> list[NewsItem]:
+def _is_near_duplicate(item: NewsItem, existing: list[NewsItem]) -> bool:
+    link = _canonical_link(item.link)
+    title = _normalize_title(item.title)
+    for seen in existing:
+        seen_link = _canonical_link(seen.link)
+        if link == seen_link:
+            return True
+        ratio = SequenceMatcher(None, title, _normalize_title(seen.title)).ratio()
+        if ratio >= 0.9:
+            return True
+    return False
+
+
+def _canonical_link(url: str) -> str:
+    parsed = urlparse(url)
+    keep = [(k, v) for k, v in parse_qsl(parsed.query, keep_blank_values=True) if not k.lower().startswith("utm_")]
+    return urlunparse((parsed.scheme, parsed.netloc.lower(), parsed.path.rstrip("/"), "", urlencode(sorted(keep)), ""))
+
+
+def _normalize_title(title: str) -> str:
+    collapsed = " ".join(title.lower().replace("-", " ").split())
+    return "".join(ch for ch in collapsed if ch.isalnum() or ch.isspace())
+
+
+def collect_items(topic: str, topic_cfg: dict, source_cfg: dict, since_hours: int | None = None) -> list[NewsItem]:
     from .sources import feed_specs, topic_queries
 
     collected: list[NewsItem] = []
-    for query in topic_queries(config, topic):
-        for feed in feed_specs(config):
+    preferred_feeds = topic_cfg.get("source_preferences", {}).get("feeds")
+    for query in topic_queries({"topics": {topic: topic_cfg}}, topic):
+        for feed in feed_specs(source_cfg, preferred_feeds):
             try:
                 xml_text = fetch_feed_text(feed_url(feed, query.query))
-                collected.extend(parse_feed(xml_text, feed.name, query.tag, config))
+                collected.extend(parse_feed(xml_text, feed.name, query.tag, source_cfg))
             except Exception:
                 continue
-    return dedupe_items(collected)
+
+    deduped = dedupe_items(collected)
+    if since_hours is None:
+        return deduped
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=since_hours)
+    return [item for item in deduped if datetime.fromisoformat(item.published_at) >= cutoff]
 
 
 def _safe_text(value: str | None) -> str:

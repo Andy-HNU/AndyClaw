@@ -1,0 +1,44 @@
+{
+  "topics": {
+    "iran-hormuz": {
+      "queries": [
+        {"tag": "shipping", "query": "Iran Hormuz shipping"},
+        {"tag": "oil", "query": "Iran Strait of Hormuz oil"},
+        {"tag": "military", "query": "Iran Hormuz naval tensions"}
+      ],
+      "source_preferences": {
+        "feeds": ["Google News", "Bing News", "Yahoo News"]
+      },
+      "impact_template": [
+        "- Gold theme: [safe-haven demand / no clear read / easing]",
+        "- Bond theme: [duration bid / no clear read / yields higher on growth or supply shock]",
+        "- Stock theme: [energy up / transport down / defense up / broad risk-off / neutral]",
+        "- Watchlist: [oil majors, airlines, shippers, defense, EM FX]"
+      ]
+    },
+    "taiwan-strait": {
+      "queries": [
+        {"tag": "military", "query": "Taiwan Strait military drills"},
+        {"tag": "shipping", "query": "Taiwan Strait shipping trade"},
+        {"tag": "diplomacy", "query": "Taiwan China diplomatic talks"}
+      ],
+      "source_preferences": {
+        "feeds": ["Google News", "Bing News"]
+      },
+      "impact_template": [
+        "- Semis: [supply risk / neutral / easing logistics pressure]",
+        "- Shipping: [insurance up / reroute risk / normal flow]",
+        "- FX/Rates: [regional risk-off / neutral / risk-on rebound]"
+      ]
+    },
+    "red-sea": {
+      "queries": [
+        {"tag": "shipping", "query": "Red Sea shipping attacks"},
+        {"tag": "energy", "query": "Red Sea oil trade disruption"}
+      ],
+      "source_preferences": {
+        "feeds": ["Google News", "Yahoo News"]
+      }
+    }
+  }
+}
