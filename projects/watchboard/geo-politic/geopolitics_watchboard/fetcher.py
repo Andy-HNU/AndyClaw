@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from email.utils import parsedate_to_datetime
 from html import unescape
+import re
 from typing import Iterable
 from urllib.parse import parse_qsl, quote_plus, urlencode, urlparse, urlunparse
 from urllib.request import Request, urlopen
@@ -14,6 +15,16 @@ from .models import FeedSpec, NewsItem
 
 USER_AGENT = "watchboard-geo-politic/0.1"
 ATOM_NS = {"atom": "http://www.w3.org/2005/Atom"}
+FINAL_URL_PARAM_NAMES = {
+    "dest",
+    "destination",
+    "redirect",
+    "redirect_url",
+    "r",
+    "target",
+    "u",
+    "url",
+}
 
 
 def fetch_feed_text(url: str, timeout: int = 15) -> str:
@@ -31,11 +42,71 @@ def host_from_url(url: str) -> str:
     return host[4:] if host.startswith("www.") else host
 
 
-def assign_tier(link: str, config: dict) -> str:
-    host = host_from_url(link)
+def normalize_publisher_name(value: str) -> str:
+    lowered = value.lower()
+    collapsed = re.sub(r"[^\w]+", " ", lowered)
+    return " ".join(collapsed.split())
+
+
+def extract_candidate_urls(url: str) -> list[str]:
+    candidates: list[str] = []
+    queue = [url]
+    seen: set[str] = set()
+    while queue:
+        current = queue.pop(0)
+        if not current or current in seen:
+            continue
+        seen.add(current)
+        candidates.append(current)
+        parsed = urlparse(current)
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True):
+            if value.startswith(("http://", "https://")) or key.lower() in FINAL_URL_PARAM_NAMES:
+                if value.startswith(("http://", "https://")):
+                    queue.append(value)
+    return candidates
+
+
+def candidate_hostnames(url: str) -> list[str]:
+    hosts: list[str] = []
+    seen: set[str] = set()
+    for candidate in extract_candidate_urls(url):
+        host = host_from_url(candidate)
+        if host and host not in seen:
+            seen.add(host)
+            hosts.append(host)
+    return hosts
+
+
+def preferred_hostname(url: str) -> str:
+    hosts = candidate_hostnames(url)
+    return hosts[-1] if hosts else ""
+
+
+def _tier_entries(config: dict, tier: str) -> list[dict]:
+    entries: list[dict] = []
+    for raw in config.get("tiers", {}).get(tier, []):
+        if isinstance(raw, str):
+            entries.append({"domains": [raw], "aliases": []})
+            continue
+        entries.append(
+            {
+                "domains": [domain.lower() for domain in raw.get("domains", [])],
+                "aliases": [normalize_publisher_name(alias) for alias in raw.get("aliases", [])],
+            }
+        )
+    return entries
+
+
+def assign_tier(link: str, config: dict, source: str | None = None) -> str:
+    hosts = candidate_hostnames(link)
+    normalized_source = normalize_publisher_name(source or "")
     for tier in ("A", "B", "C"):
-        if any(host == domain or host.endswith(f".{domain}") for domain in config["tiers"][tier]):
-            return tier
+        for entry in _tier_entries(config, tier):
+            for domain in entry["domains"]:
+                if any(host == domain or host.endswith(f".{domain}") for host in hosts):
+                    return tier
+            if normalized_source and normalized_source in entry["aliases"]:
+                return tier
     return "C"
 
 
@@ -70,7 +141,7 @@ def _parse_rss(root: ET.Element, feed_name: str, query_tag: str, config: dict) -
     for node in root.findall(".//item"):
         title = _safe_text(node.findtext("title"))
         link = _safe_text(node.findtext("link"))
-        source = _safe_text(node.findtext("source")) or host_from_url(link) or feed_name
+        source = _safe_text(node.findtext("source")) or preferred_hostname(link) or feed_name
         published = parse_published(node.findtext("pubDate"))
         if title and link:
             items.append(
@@ -80,7 +151,7 @@ def _parse_rss(root: ET.Element, feed_name: str, query_tag: str, config: dict) -
                     published_at=published,
                     link=link,
                     query_tag=query_tag,
-                    tier=assign_tier(link, config),
+                    tier=assign_tier(link, config, source=source),
                 )
             )
     return items
@@ -92,7 +163,7 @@ def _parse_atom(root: ET.Element, feed_name: str, query_tag: str, config: dict) 
         title = _safe_text(node.findtext("atom:title", default="", namespaces=ATOM_NS))
         link_node = node.find("atom:link", ATOM_NS)
         link = link_node.attrib.get("href", "") if link_node is not None else ""
-        source = host_from_url(link) or feed_name
+        source = preferred_hostname(link) or feed_name
         published = parse_published(
             node.findtext("atom:published", default="", namespaces=ATOM_NS)
             or node.findtext("atom:updated", default="", namespaces=ATOM_NS)
@@ -105,7 +176,7 @@ def _parse_atom(root: ET.Element, feed_name: str, query_tag: str, config: dict) 
                     published_at=published,
                     link=link,
                     query_tag=query_tag,
-                    tier=assign_tier(link, config),
+                    tier=assign_tier(link, config, source=source),
                 )
             )
     return items

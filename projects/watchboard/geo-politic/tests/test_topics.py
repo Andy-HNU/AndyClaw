@@ -1,6 +1,6 @@
 import unittest
 
-from geopolitics_watchboard.sources import load_topics_registry, topic_config, topic_queries
+from geopolitics_watchboard.sources import load_topics_registry, project_root, topic_config, topic_queries, workspace_root
 
 
 class TopicConfigTests(unittest.TestCase):
@@ -14,6 +14,9 @@ class TopicConfigTests(unittest.TestCase):
         registry = load_topics_registry()
         with self.assertRaises(ValueError):
             topic_config(registry, "not-a-topic")
+
+    def test_workspace_root_stays_within_project(self) -> None:
+        self.assertEqual(workspace_root(), project_root())
 
 
 if __name__ == "__main__":

@@ -11,11 +11,7 @@ def project_root() -> Path:
 
 
 def workspace_root() -> Path:
-    current = project_root()
-    for candidate in [current, *current.parents]:
-        if (candidate / "AGENTS.md").exists() and (candidate / ".git").exists():
-            return candidate
-    return Path(__file__).resolve().parents[5]
+    return project_root()
 
 
 def _read_json(path: Path) -> dict:

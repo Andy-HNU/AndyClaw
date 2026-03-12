@@ -18,29 +18,92 @@
   ],
   "tiers": {
     "A": [
-      "state.gov",
-      "defense.gov",
-      "treasury.gov",
-      "ec.europa.eu",
-      "consilium.europa.eu",
-      "gov.uk",
-      "un.org",
-      "imo.org",
-      "opec.org",
-      "iaea.org"
+      {
+        "domains": ["state.gov"],
+        "aliases": ["State Department", "U.S. Department of State", "US Department of State"]
+      },
+      {
+        "domains": ["defense.gov"],
+        "aliases": ["Department of Defense", "U.S. Department of Defense", "US DoD", "Pentagon"]
+      },
+      {
+        "domains": ["treasury.gov"],
+        "aliases": ["Treasury Department", "U.S. Department of the Treasury", "US Treasury"]
+      },
+      {
+        "domains": ["ec.europa.eu"],
+        "aliases": ["European Commission", "EC"]
+      },
+      {
+        "domains": ["consilium.europa.eu"],
+        "aliases": ["Council of the European Union", "European Council", "EU Council"]
+      },
+      {
+        "domains": ["gov.uk"],
+        "aliases": ["UK Government", "British Government", "GOV.UK"]
+      },
+      {
+        "domains": ["un.org"],
+        "aliases": ["United Nations", "UN"]
+      },
+      {
+        "domains": ["imo.org"],
+        "aliases": ["International Maritime Organization", "IMO"]
+      },
+      {
+        "domains": ["opec.org"],
+        "aliases": ["OPEC", "Organization of the Petroleum Exporting Countries"]
+      },
+      {
+        "domains": ["iaea.org"],
+        "aliases": ["IAEA", "International Atomic Energy Agency"]
+      }
     ],
     "B": [
-      "reuters.com",
-      "apnews.com",
-      "ft.com",
-      "wsj.com",
-      "bloomberg.com",
-      "nytimes.com",
-      "washingtonpost.com",
-      "cnn.com",
-      "bbc.com",
-      "aljazeera.com",
-      "cnbc.com"
+      {
+        "domains": ["reuters.com"],
+        "aliases": ["Reuters"]
+      },
+      {
+        "domains": ["apnews.com"],
+        "aliases": ["AP", "AP News", "Associated Press"]
+      },
+      {
+        "domains": ["ft.com"],
+        "aliases": ["FT", "Financial Times"]
+      },
+      {
+        "domains": ["wsj.com"],
+        "aliases": ["WSJ", "Wall Street Journal", "The Wall Street Journal"]
+      },
+      {
+        "domains": ["bloomberg.com"],
+        "aliases": ["Bloomberg", "Bloomberg News"]
+      },
+      {
+        "domains": ["nytimes.com"],
+        "aliases": ["NYT", "NYTimes", "The New York Times", "New York Times"]
+      },
+      {
+        "domains": ["washingtonpost.com"],
+        "aliases": ["Washington Post", "The Washington Post", "WaPo"]
+      },
+      {
+        "domains": ["cnn.com"],
+        "aliases": ["CNN", "CNN International"]
+      },
+      {
+        "domains": ["bbc.com", "bbc.co.uk"],
+        "aliases": ["BBC", "BBC News"]
+      },
+      {
+        "domains": ["aljazeera.com"],
+        "aliases": ["Al Jazeera", "Al Jazeera English"]
+      },
+      {
+        "domains": ["cnbc.com"],
+        "aliases": ["CNBC"]
+      }
     ],
     "C": [
       "news.google.com",
