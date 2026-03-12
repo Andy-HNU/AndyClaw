@@ -1,0 +1,89 @@
+{
+  "feeds": [
+    {
+      "name": "Google News",
+      "kind": "rss",
+      "url": "https://news.google.com/rss/search?q={query}"
+    },
+    {
+      "name": "Bing News",
+      "kind": "rss",
+      "url": "https://www.bing.com/news/search?q={query}&format=rss"
+    },
+    {
+      "name": "Yahoo News",
+      "kind": "rss",
+      "url": "https://news.search.yahoo.com/rss?p={query}"
+    }
+  ],
+  "tiers": {
+    "A": [
+      "state.gov",
+      "defense.gov",
+      "treasury.gov",
+      "ec.europa.eu",
+      "consilium.europa.eu",
+      "gov.uk",
+      "un.org",
+      "imo.org",
+      "opec.org",
+      "iaea.org"
+    ],
+    "B": [
+      "reuters.com",
+      "apnews.com",
+      "ft.com",
+      "wsj.com",
+      "bloomberg.com",
+      "nytimes.com",
+      "washingtonpost.com",
+      "cnn.com",
+      "bbc.com",
+      "aljazeera.com",
+      "cnbc.com"
+    ],
+    "C": [
+      "news.google.com",
+      "finance.yahoo.com",
+      "marketwatch.com",
+      "zerohedge.com",
+      "seekingalpha.com"
+    ]
+  },
+  "default_queries": {
+    "iran-hormuz": [
+      {
+        "tag": "shipping",
+        "query": "Iran Hormuz shipping"
+      },
+      {
+        "tag": "oil",
+        "query": "Iran Strait of Hormuz oil"
+      },
+      {
+        "tag": "military",
+        "query": "Iran Hormuz naval tensions"
+      }
+    ],
+    "taiwan-strait": [
+      {
+        "tag": "military",
+        "query": "Taiwan Strait military drills"
+      },
+      {
+        "tag": "shipping",
+        "query": "Taiwan Strait shipping trade"
+      }
+    ],
+    "red-sea": [
+      {
+        "tag": "shipping",
+        "query": "Red Sea shipping attacks"
+      },
+      {
+        "tag": "energy",
+        "query": "Red Sea oil trade disruption"
+      }
+    ]
+  }
+}

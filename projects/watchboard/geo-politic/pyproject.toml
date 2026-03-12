@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "watchboard-geo-politic"
+version = "0.1.0"
+description = "MVP geopolitical watchboard for multi-topic news monitoring and markdown dashboard reports."
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
