@@ -36,3 +36,22 @@ Added thin local adapter:
 - All additions are new namespaced paths under:
   - `skills/external/ecc/`
   - `ops/ecc/`
+## Phase-2 additions (docs/rules/templates only)
+
+Copied (documentation-only subset):
+- `rules/common/coding-style.md` -> `skills/external/ecc/phase2/rules-common/common-coding-style.md`
+- `rules/common/development-workflow.md` -> `skills/external/ecc/phase2/rules-common/common-development-workflow.md`
+- `rules/common/git-workflow.md` -> `skills/external/ecc/phase2/rules-common/common-git-workflow.md`
+- `rules/common/patterns.md` -> `skills/external/ecc/phase2/rules-common/common-patterns.md`
+- `rules/common/testing.md` -> `skills/external/ecc/phase2/rules-common/common-testing.md`
+- `rules/README.md` -> `skills/external/ecc/phase2/rules-overview.md`
+
+Added local glue/guardrails:
+- `skills/external/ecc/phase2/README.md`
+- `skills/external/ecc/phase2/SAFE_ADOPTION_GUIDE.md`
+- `CAPABILITY_DELTA.md`
+
+Safety notes:
+- Re-audited selected candidate files before import (no dangerous-pattern hits).
+- No executable files added in phase-2.
+- Scripts/installers/hooks/autonomous-loop guidance intentionally excluded.

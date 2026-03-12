@@ -42,3 +42,28 @@ Source evaluated: `affaan-m/everything-claude-code` @ `da4db99c94cf272d3341910bc
 - Integrate only **low-risk, high-value, minimal-change** items.
 - Prefer documentation-only imports over executable automation in first pass.
 - Keep imports namespaced under `skills/external/ecc` and `ops/ecc` to avoid production path conflicts.
+## Phase-2 promotions (implemented)
+
+Promoted to reusable docs-only references:
+1. `rules/common/coding-style.md`
+2. `rules/common/development-workflow.md`
+3. `rules/common/git-workflow.md`
+4. `rules/common/patterns.md`
+5. `rules/common/testing.md`
+6. `rules/README.md` (structure/context reference)
+
+Imported to:
+- `skills/external/ecc/phase2/rules-common/*.md`
+- `skills/external/ecc/phase2/rules-overview.md`
+
+Local glue docs added:
+- `skills/external/ecc/phase2/README.md`
+- `skills/external/ecc/phase2/SAFE_ADOPTION_GUIDE.md`
+
+## Phase-2 exclusions (explicit)
+
+Not promoted in phase-2:
+- `rules/common/hooks.md` (hook execution surface)
+- any `scripts/`, installers, or executable modules
+- autonomous loop related docs/skills
+- content with remote script piping guidance (`curl|bash`)

@@ -60,3 +60,35 @@ Detected matches were mostly educational text or scanner definitions:
 ## High-risk gating outcome
 
 No confirmed malicious high-risk payloads were identified. However, modules containing risky execution guidance were **not integrated** in this pass (security-first filtering).
+## Phase-2 targeted re-audit (docs/rules/templates only)
+
+- Re-audit date: 2026-03-12 (Asia/Shanghai)
+- Re-audit clone: `/tmp/ecc-phase2-h23S/repo`
+- Commit verified: `da4db99c94cf272d3341910bc8c8a26d2e6e6960`
+- Candidate set (selected before import):
+  - `rules/README.md`
+  - `rules/common/coding-style.md`
+  - `rules/common/development-workflow.md`
+  - `rules/common/git-workflow.md`
+  - `rules/common/patterns.md`
+  - `rules/common/testing.md`
+
+### Phase-2 scan method
+
+Focused grep scan over selected candidates for high-risk indicators:
+- remote piping: `curl|bash`, `wget|bash`
+- command execution patterns: `eval(`, `os.system(`, shell-enabled subprocess, JS exec/spawn
+- autonomous loop indicators: `while(true)`, `for(;;)`, `autonomous`
+
+Artifact:
+- `/tmp/ecc-phase2-h23S/out/phase2-danger-scan.txt`
+
+### Phase-2 results
+
+- **No dangerous-pattern hits** in selected phase-2 candidates.
+- Imported set remains markdown-only, no executable files.
+- Explicitly excluded from this phase: `install.sh`, `scripts/`, `hooks.md`, autonomous-loop related content, and any module containing remote script piping guidance.
+
+### Phase-2 gate decision
+
+✅ Approved for import under `skills/external/ecc/phase2/` as documentation-only references.
