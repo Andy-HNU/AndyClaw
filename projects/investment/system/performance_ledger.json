@@ -2,14 +2,20 @@
   "baseline": {
     "date": "2026-03-11",
     "total_asset": 49802.47,
-    "source": "inferred_from_first_complete_screenshots"
+    "source": "inferred_from_first_complete_screenshots",
+    "cash_asset": 9938.79,
+    "total_asset_ex_cash": 39863.68
   },
   "entries": [
     {
       "date": "2026-03-12",
       "total_asset": 49101.29,
       "pnl": -701.18,
-      "return_pct": -1.4079
+      "return_pct": -1.4079,
+      "cash_asset": 9439.07,
+      "total_asset_ex_cash": 39662.22,
+      "pnl_ex_cash": -201.46,
+      "return_pct_ex_cash": -0.5054
     }
   ]
 }
