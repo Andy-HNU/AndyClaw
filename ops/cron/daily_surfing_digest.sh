@@ -10,6 +10,20 @@ fi
 OUT="$(python3 - <<'PY'
 import requests, urllib.parse, xml.etree.ElementTree as ET, random
 
+def zh_brief(title: str) -> str:
+    t = title.lower()
+    rules = [
+        (['f1', 'formula 1', 'grand prix'], '赛车圈资讯：可能与车队策略、升级件或赛道表现相关。'),
+        (['iran', 'hormuz', 'oil', 'middle east'], '地缘资讯：关注冲突/航运/油价对市场情绪的影响。'),
+        (['ai', 'model', 'agent', 'launch'], 'AI行业资讯：新模型/新产品发布，偏行业动态观察。'),
+        (['weird', 'odd', 'funny'], '轻松趣闻：偏娱乐向，适合放松阅读。'),
+        (['tech', 'startup', 'product'], '科技资讯：产品与趋势更新，可关注实际落地价值。'),
+    ]
+    for keys, brief in rules:
+        if any(k in t for k in keys):
+            return brief
+    return '综合资讯：建议看标题关键词判断与我们关注主题的关联度。'
+
 queries=[
   'odd science news',
   'weird tech news',
@@ -29,7 +43,7 @@ try:
         for i,it in enumerate(items,1):
             title=(it.findtext('title') or '').strip()
             link=(it.findtext('link') or '').strip()
-            lines.append(f'{i}. {title}\n{link}')
+            lines.append(f'{i}. {title}\n中文简介：{zh_brief(title)}\n{link}')
         text='\n\n'.join(lines)
 except Exception:
     pass
