@@ -52,3 +52,7 @@ npm-debug.log*
 *.tar
 *.tar.gz
 *.tgz
+
+# External/local-heavy project sandboxes (managed separately)
+projects/star-office-ui/
+projects/memory/
