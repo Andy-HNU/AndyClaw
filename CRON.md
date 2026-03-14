@@ -92,7 +92,7 @@
 3. 不伪装记忆：`blurry/forgotten` 必须诚实说明“记忆模糊，需要你提醒”
 4. 情绪高光优先保留（positive）
 5. 用户内容 + 小咪内容都要记，`source` 区分清楚
-
+6. **检索优先级固定**：先查 `memory/memory.db`（`permanent_memories` + `memories(fresh/active)`），再回退到 `MEMORY.md` / `memory/*.md` 文档。
 ---
 
 ## E. 关系承诺（长期）
