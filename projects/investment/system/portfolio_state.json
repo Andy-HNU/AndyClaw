@@ -6,10 +6,10 @@
       "category": "gold",
       "asset_type": "commodity",
       "symbol": "Au99.99",
-      "value": 13836.33,
-      "shares": 12.1713,
-      "average_cost": 1124.36,
-      "profit": 151.45,
+      "value": 15831.01,
+      "shares": 13.9306,
+      "average_cost": 1125.93,
+      "profit": 146.11,
       "cumulative_profit": 2552.51
     },
     {
@@ -17,14 +17,20 @@
       "category": "bond",
       "asset_type": "bond_fund",
       "symbol": "011062",
-      "value": 7027.75
+      "value": 7027.75,
+      "shares": 5244.2,
+      "average_cost": 1.3348,
+      "pending_confirm_value": 1800.0
     },
     {
       "name": "长城短债债券C",
       "category": "bond",
       "asset_type": "bond_fund",
       "symbol": "007195",
-      "value": 5015.65
+      "value": 5015.65,
+      "shares": 4097.08,
+      "average_cost": 1.2204,
+      "pending_confirm_value": 1000.0
     },
     {
       "name": "易方达科创50联接C",
@@ -42,7 +48,10 @@
       "asset_type": "thematic_fund",
       "symbol": "012734",
       "value": 2265.64,
-      "theme": "ai"
+      "theme": "ai",
+      "shares": 1278.65,
+      "average_cost": 1.8907,
+      "pending_confirm_value": 600.0
     },
     {
       "name": "嘉实中证机器人ETF联接C",
@@ -50,7 +59,10 @@
       "asset_type": "thematic_fund",
       "symbol": "024620",
       "value": 2279.34,
-      "theme": "robotics"
+      "theme": "robotics",
+      "shares": 2275.24,
+      "average_cost": 1.0625,
+      "pending_confirm_value": 400.0
     },
     {
       "name": "嘉实中证高端装备细分50ETF联接C",

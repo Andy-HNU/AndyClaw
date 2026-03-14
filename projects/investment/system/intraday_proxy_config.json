@@ -36,53 +36,101 @@
       "minimum_holdings_coverage": 0.6,
       "base_band_pct": 0.006,
       "holdings": [
-        {"driver_code": "cambricon", "driver_name": "寒武纪", "weight": 0.42},
-        {"driver_code": "zhongji_xuchuang", "driver_name": "中际旭创", "weight": 0.33},
-        {"driver_code": "iflytek", "driver_name": "科大讯飞", "weight": 0.25}
+        {
+          "driver_code": "cambricon",
+          "driver_name": "寒武纪",
+          "weight": 0.42
+        },
+        {
+          "driver_code": "zhongji_xuchuang",
+          "driver_name": "中际旭创",
+          "weight": 0.33
+        },
+        {
+          "driver_code": "iflytek",
+          "driver_name": "科大讯飞",
+          "weight": 0.25
+        }
       ],
       "fallback_mapping": [
-        {"driver_code": "csi_ai_theme", "driver_name": "人工智能主题指数", "weight": 1.0}
-      ]
+        {
+          "driver_code": "csi_ai_theme",
+          "driver_name": "人工智能主题指数",
+          "weight": 1.0
+        }
+      ],
+      "reference_nav": 1.7876,
+      "reference_nav_asof": "2026-03-11"
     },
     "011609": {
       "fund_name": "易方达科创50联接C",
       "minimum_holdings_coverage": 0.6,
       "base_band_pct": 0.005,
       "fallback_mapping": [
-        {"driver_code": "star50_index", "driver_name": "科创50指数", "weight": 1.0}
-      ]
+        {
+          "driver_code": "star50_index",
+          "driver_name": "科创50指数",
+          "weight": 1.0
+        }
+      ],
+      "reference_nav": 1.0759,
+      "reference_nav_asof": "2026-03-11"
     },
     "024620": {
       "fund_name": "嘉实中证机器人ETF联接C",
       "minimum_holdings_coverage": 0.5,
       "base_band_pct": 0.006,
       "fallback_mapping": [
-        {"driver_code": "csi_robotics", "driver_name": "中证机器人指数", "weight": 1.0}
-      ]
+        {
+          "driver_code": "csi_robotics",
+          "driver_name": "中证机器人指数",
+          "weight": 1.0
+        }
+      ],
+      "reference_nav": 1.0123,
+      "reference_nav_asof": "2026-03-11"
     },
     "018028": {
       "fund_name": "嘉实中证高端装备细分50ETF联接C",
       "minimum_holdings_coverage": 0.5,
       "base_band_pct": 0.0055,
       "fallback_mapping": [
-        {"driver_code": "csi_advanced_manufacturing", "driver_name": "高端装备指数", "weight": 1.0}
-      ]
+        {
+          "driver_code": "csi_advanced_manufacturing",
+          "driver_name": "高端装备指数",
+          "weight": 1.0
+        }
+      ],
+      "reference_nav": 1.1644,
+      "reference_nav_asof": "2026-03-11"
     },
     "025833": {
       "fund_name": "天弘中证电网设备主题指数C",
       "minimum_holdings_coverage": 0.5,
       "base_band_pct": 0.0055,
       "fallback_mapping": [
-        {"driver_code": "csi_power_grid", "driver_name": "电网设备主题指数", "weight": 1.0}
-      ]
+        {
+          "driver_code": "csi_power_grid",
+          "driver_name": "电网设备主题指数",
+          "weight": 1.0
+        }
+      ],
+      "reference_nav": 1.4499,
+      "reference_nav_asof": "2026-03-11"
     },
     "017193": {
       "fund_name": "天弘中证工业有色金属主题ETF联接C",
       "minimum_holdings_coverage": 0.5,
       "base_band_pct": 0.006,
       "fallback_mapping": [
-        {"driver_code": "csi_industrial_metals", "driver_name": "工业有色金属指数", "weight": 1.0}
-      ]
+        {
+          "driver_code": "csi_industrial_metals",
+          "driver_name": "工业有色金属指数",
+          "weight": 1.0
+        }
+      ],
+      "reference_nav": 2.0936,
+      "reference_nav_asof": "2026-03-11"
     }
   }
 }
