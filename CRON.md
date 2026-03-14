@@ -9,7 +9,7 @@
 
 ## A. 每日固定任务（Daily）
 
-### 1) 00:00 —— 遗忘曲线记忆整理 + 当日简报（新增，最高优先级）
+### 1) 00:00 —— 遗忘曲线记忆整理（数据库主存） + 当日简报 + 会话 compact（最高优先级）
 
 **目标**：把当天对话与执行内容结构化沉淀，防止“对话丢失=流程丢失”。
 
@@ -19,9 +19,13 @@
    - `permanent_memories`：身份/承诺/工作流/长期策略/关键里程碑/明确“记住这个”
    - `memories(fresh/active)`：当日普通但有价值内容
 3. 标注 source（`user` / `self`）、emotion、tags
-4. 更新当日文件：`memory/YYYY-MM-DD.md`
-5. 同步长期记忆：`MEMORY.md`（仅增量更新关键长期项）
-6. 生成并发送《当日简报》给 Andy（简洁但信息完整）
+4. **写入数据库 `memory/memory.db`（主存）**：
+   - 永久项 → `permanent_memories`
+   - 当日衰减项 → `memories`（fresh/active）
+5. 更新当日文件：`memory/YYYY-MM-DD.md`（文本镜像，便于人工审阅）
+6. 同步长期记忆：`MEMORY.md`（仅增量更新关键长期项）
+7. 生成并发送《当日简报》给 Andy（简洁但信息完整）
+8. **执行会话 compact**（防止上下文膨胀导致漏回/失忆）
 
 **当日简报模板**：
 - 今日发生（3~8条）
@@ -55,17 +59,23 @@
 
 ### 1) 每周一 —— 提醒 Andy 同步份额数据
 
-### 2) 每周日 23:00 —— Weekly Digest（周记忆汇总）
+### 2) 每周日 23:00 —— 周记忆整理（constructed memory 格式）
 
 **输出路径**：`memory/archives/YYYY-WW.md`
 
-**必须包含**：
-1. 本周新增/更新永久记忆
-2. 本周 fresh 记忆
-3. 本周 active 记忆
-4. 本周亮点
-5. 下周待办 / 未尽事项
-6. 项目引用路径（有变化才更新）
+**格式要求（严格按模板）**：
+- 使用 `# 🧠 Andy × Claw 结构化记忆` 风格模板
+- 分区至少包含：
+  1. 🔒 永久记忆（按 category）
+  2. ⏳ 衰减记忆（fresh / active）
+  3. 📌 项目引用路径
+  4. 🗒️ 每日开场建议
+  5. 🗣️ 小咪自身的话（source: self）
+- 模板来源：`skills/memory-system/references/memory-system-prompt-v2.md` + 你给的 constructed memory 样式
+
+**落盘策略**：
+- 周整理允许保存为 MD（归档快照）
+- 归档完成后，fresh/active 与新增永久项同步入 `memory/memory.db`
 
 **完成后消息**：
 - 给 Andy 发送一句预告：
