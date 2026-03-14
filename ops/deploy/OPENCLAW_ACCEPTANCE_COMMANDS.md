@@ -161,6 +161,8 @@ Expected:
 - `rebalance.triggered` is returned
 - `report.report_type` is `daily`
 - `report.content_json.sections` contains daily section ids
+- `report.content_json.chart_artifacts` is present
+- if enough historical price points exist, at least one daily chart PNG is generated under `staging/reports/`
 
 ## Test suite
 ```bash
