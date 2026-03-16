@@ -11,7 +11,7 @@ description: Analyze policy documents and current affairs for decision signals u
    - `domain_knowledge`
    - `historical_reference`
    - `current_state`
-4. Execute seven-step workflow in strict order:
+4. Execute workflow in strict order:
    - Step 1 anomaly scan
    - Step 2 self-explanation from source material
    - Step 3 external explanation for anomalies
@@ -19,6 +19,7 @@ description: Analyze policy documents and current affairs for decision signals u
    - Step 5 logic-closure subtraction
    - Step 6 changed vs unchanged (must reach wording-level, not only policy-tone)
    - Step 7 global external calibration
+   - Step 8 synthesize investor decision summary (delivery layer)
 5. If a **critical-node** knowledge gap blocks the core logic chain, run active gap-filling flow (mandatory, cannot skip):
    - Level 1: SQLite retry
    - Level 2A: built-in web search/fetch (single factual query)
@@ -45,6 +46,7 @@ description: Analyze policy documents and current affairs for decision signals u
 
 ## Output structure (required)
 
+A. 分析日志（Step 0~7）
 1. 核心信号摘要（<=3句）
 2. 信号来源（第1-3步）
 3. 核心逻辑链
@@ -52,6 +54,9 @@ description: Analyze policy documents and current affairs for decision signals u
 5. 延续未变部分（含措辞层检查）
 6. 知识缺口与待验证事项
 7. 知识沉淀包（完整记录内容，不仅计数）
+
+B. 交付摘要（Step 8，必须单独输出）
+8. 投资决策摘要（按框架“受众专项输出”模板）
 
 ## Resources
 
