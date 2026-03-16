@@ -33,6 +33,12 @@ description: Analyze policy documents and current affairs for decision signals u
    - `[外部补充:browser]` browser-based supplement
 7. Never mix `[推断]` into source-grounded conclusions.
 8. Output full knowledge sedimentation content (records), then write to SQLite via script. Do not report counts only.
+9. Follow reference markdown format strictly. Do not reorder/merge sections.
+10. In knowledge sedimentation JSON, include source annotation fields for each record:
+   - `source_url`: article URL
+   - `source_title`: article title
+   - `source_quote`: one directly supporting sentence excerpt from source
+   - `source_date`: publication date if available
 
 ## Output structure (required)
 
