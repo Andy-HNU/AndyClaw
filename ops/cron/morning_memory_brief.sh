@@ -27,7 +27,8 @@ MSG="早安 Andy ☀️
 昨日记忆简报（${YDAY}）：
 ${SUMMARY}
 
-提醒：如当前会话上下文较高，请你手动执行一次 compact。"
+提醒：如当前会话上下文较高，请你手动执行一次 compact。
+提醒：今天要不要做一次政策巡检？（回复“巡检”即可触发）"
 
 /usr/local/bin/openclaw message send \
   --channel telegram \
