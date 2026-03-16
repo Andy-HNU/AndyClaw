@@ -1,47 +1,56 @@
 ---
 name: policy-news-analysis
-description: Analyze policy documents and current affairs for decision signals using a seven-step framework plus pre-analysis knowledge diagnosis. Use when users ask for policy/event interpretation, impact analysis, decision implications, or action-oriented briefings (not plain summaries). Supports audience-specific analysis (investor/industry/operator/research), anomaly-first reasoning, and post-analysis SQLite knowledge sedimentation.
+description: Analyze policy documents and current affairs for decision signals using a seven-step framework with pre-analysis knowledge diagnosis and active knowledge-gap filling. Use for policy/event interpretation, impact analysis, and action-oriented briefings (not plain summaries). Supports source labeling ([数据库]/[推断]/[待验证]/[知识缺口]/[外部补充]/[外部补充:browser]) and SQLite knowledge sedimentation.
 ---
 
-# Policy Analysis Skill
+# Policy News Analysis Skill
 
-1. Confirm audience before reading deeply. Ask: investor, industry practitioner, business operator, or researcher/media.
-2. Run Step 0 first: identify domain tags and knowledge-gap hypotheses.
-3. Query SQLite knowledge base directionally (no full-table scan):
-   - `domain_knowledge` for structural facts
-   - `historical_reference` for analogs
-   - `current_state` for current context
-4. Execute seven-step workflow in order:
+1. Confirm audience first: investor / industry practitioner / business operator / researcher-media.
+2. Run Step 0 before analysis: identify domain tags and explicit knowledge-gap hypotheses.
+3. Query SQLite directionally (no full-table scans):
+   - `domain_knowledge`
+   - `historical_reference`
+   - `current_state`
+4. Execute seven-step workflow in strict order:
    - Step 1 anomaly scan
    - Step 2 self-explanation from source material
-   - Step 3 external explanation of anomalies
+   - Step 3 external explanation for anomalies
    - Step 4 priority from ordering/structure
    - Step 5 logic-closure subtraction
-   - Step 6 changed vs unchanged
+   - Step 6 changed vs unchanged (must reach wording-level, not only policy-tone)
    - Step 7 global external calibration
-5. Output action-oriented analysis instead of summary.
-6. Always mark uncertainty with `[待验证]` and missing critical facts with `[知识缺口]`.
-7. After each analysis, output a knowledge sedimentation package and write it into SQLite via bundled script.
+5. If a **critical-node** knowledge gap blocks the core logic chain, run active gap-filling flow:
+   - Level 1: SQLite retry
+   - Level 2A: built-in web search/fetch (single factual query)
+   - Level 2B: `agent-browser-clawdbot` only for deep page navigation
+   - Evaluate source quality/time-validity/logic consistency before use
+6. Mark sources and uncertainty explicitly:
+   - `[数据库]` database-backed
+   - `[推断]` analyst inference (not directly stated in source)
+   - `[待验证]` uncertain external data
+   - `[知识缺口]` missing critical knowledge
+   - `[外部补充]` external search supplement
+   - `[外部补充:browser]` browser-based supplement
+7. Never mix `[推断]` into source-grounded conclusions.
+8. Output full knowledge sedimentation content (records), then write to SQLite via script. Do not report counts only.
 
-## Output skeleton
-
-Use this exact section order:
+## Output structure (required)
 
 1. 核心信号摘要（<=3句）
-2. 信号来源（异常点 + 结构变化）
-3. 核心逻辑链（信号→定性/根因→行动/传导→工具/影响）
+2. 信号来源（第1-3步）
+3. 核心逻辑链
 4. 值得深挖的2-3个关键点（含行动意义）
-5. 延续未变部分（简要）
+5. 延续未变部分（含措辞层检查）
 6. 知识缺口与待验证事项
-7. 知识沉淀包（domain/historical/current_state）
+7. 知识沉淀包（完整记录内容，不仅计数）
 
 ## Resources
 
-- Framework reference: `references/openclaw_policy_analysis_framework.md`
-- SQL schema + DB init: `scripts/init_policy_kb.py`
+- Main framework: `references/openclaw_policy_analysis_framework.md`
+- DB init schema: `scripts/init_policy_kb.py`
 - Minimal writer: `scripts/write_policy_knowledge.py`
 
-## Run commands
+## Commands
 
 ```bash
 python3 skills/policy-news-analysis/scripts/init_policy_kb.py --db memory/policy_knowledge.db
