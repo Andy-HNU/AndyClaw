@@ -19,7 +19,7 @@ description: Analyze policy documents and current affairs for decision signals u
    - Step 5 logic-closure subtraction
    - Step 6 changed vs unchanged (must reach wording-level, not only policy-tone)
    - Step 7 global external calibration
-5. If a **critical-node** knowledge gap blocks the core logic chain, run active gap-filling flow:
+5. If a **critical-node** knowledge gap blocks the core logic chain, run active gap-filling flow (mandatory, cannot skip):
    - Level 1: SQLite retry
    - Level 2A: built-in web search/fetch (single factual query)
    - Level 2B: `agent-browser-clawdbot` only for deep page navigation
