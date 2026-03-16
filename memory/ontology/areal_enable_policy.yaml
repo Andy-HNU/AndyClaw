@@ -1,0 +1,90 @@
+version: 1
+id: areal_enable_policy
+owner: Andy_x_Andyclaw
+timezone: Asia/Shanghai
+last_updated: 2026-03-16
+
+intent:
+  summary: "Use Ontology as the decision gate for whether AReaL should be enabled."
+  role_split:
+    ontology: "Decides WHEN/WHY to enable AReaL"
+    areal: "Handles learning/training AFTER enablement"
+
+decision_model:
+  enable_condition: "YES_signals >= 2 AND no_blocker"
+
+  yes_signals:
+    - id: quantifiable_goal
+      desc: "Clear measurable goals exist (e.g., success_rate, risk_adjusted_return, tool_call_accuracy)"
+      weight: 1
+    - id: sustainable_samples
+      desc: "Stable weekly/daily trajectory data available"
+      weight: 1
+    - id: prompt_plateau
+      desc: "Prompt/rule tuning reached diminishing returns"
+      weight: 1
+    - id: multi_turn_delayed_feedback
+      desc: "Task is multi-turn with delayed feedback (agentic RL-friendly)"
+      weight: 1
+    - id: ops_budget_ready
+      desc: "Compute and MLOps budget available (GPU, experiment tracking, rollback)"
+      weight: 1
+
+  blockers:
+    - id: need_stability_not_learning
+      desc: "Current need is stable automation, not capability training"
+    - id: weak_reward
+      desc: "Insufficient data or reward cannot be defined"
+    - id: low_budget
+      desc: "Insufficient compute/ops resources"
+    - id: engineering_issues_first
+      desc: "Main pain is engineering reliability (data-source instability, workflow gaps), not strategy quality"
+
+  hard_gates:
+    - id: reward_defined
+      rule: "At least 3 primary metrics + 1 safety constraint"
+    - id: offline_replay_passed
+      rule: "Offline replay evaluation must pass before any online trial"
+    - id: canary_only
+      rule: "Start with shadow/canary, never replace production directly"
+    - id: rollback_ready
+      rule: "Must be able to rollback to current rule-based pipeline"
+
+readiness_score:
+  max_score: 10
+  scoring:
+    quantifiable_goal: 2
+    sustainable_samples: 2
+    prompt_plateau: 2
+    multi_turn_delayed_feedback: 2
+    ops_budget_ready: 2
+  recommendation:
+    - if: "score <= 4"
+      action: "Do not enable AReaL; keep rule-based flow"
+    - if: "5 <= score <= 7"
+      action: "Run offline PoC only"
+    - if: "score >= 8"
+      action: "Start shadow mode + canary"
+
+adoption_phases:
+  - phase: 0
+    name: skill_reserve
+    objective: "Documentation + examples learning only"
+  - phase: 1
+    name: offline_poc
+    objective: "Replay historical tasks for train/eval"
+  - phase: 2
+    name: shadow_mode
+    objective: "AReaL suggests; execution still by current system"
+  - phase: 3
+    name: controlled_execution
+    objective: "Small traffic execution with baseline comparison"
+
+trigger_examples:
+  - "Investment agent multi-step decision quality stagnates despite prompt tuning"
+  - "Retrieval-verification-summary agent needs policy learning under delayed feedback"
+  - "Tool routing policy needs adaptive source fallback learning"
+
+metadata:
+  tags: [ontology, areal, decision-gate, rl, readiness]
+  source: "Conversation decision on 2026-03-16"
