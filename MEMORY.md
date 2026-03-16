@@ -82,6 +82,8 @@
 ## 10) 记忆存储与检索源
 
 - 每日 00:00 额外执行 Git 工作区检查：发现改动则分组 commit 并 push，避免本地漂移。
+- 会话 compact 改为“用户手动触发”；系统不再在 00:00 自动执行 compact。
+- 每日 08:00 自动发送“昨日日志简报 + compact 提醒”。
 
 - 主数据库：`memory/memory.db`
 - 主要表：`permanent_memories`（永久）、`memories`（衰减）
