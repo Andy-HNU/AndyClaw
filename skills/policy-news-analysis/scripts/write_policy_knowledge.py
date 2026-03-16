@@ -23,6 +23,11 @@ def main():
     conn = sqlite3.connect(args.db)
     cur = conn.cursor()
 
+    before = {}
+    for t in ('domain_knowledge', 'historical_reference', 'current_state'):
+        cur.execute(f'SELECT COUNT(*) FROM {t}')
+        before[t] = cur.fetchone()[0]
+
     for r in payload.get('domain_knowledge', []):
         cur.execute('''
             INSERT INTO domain_knowledge(domain, topic, content, key_numbers, updated_at)
@@ -51,12 +56,20 @@ def main():
 
     conn.commit()
 
-    stats = {}
+    total = {}
     for t in ('domain_knowledge', 'historical_reference', 'current_state'):
         cur.execute(f'SELECT COUNT(*) FROM {t}')
-        stats[t] = cur.fetchone()[0]
+        total[t] = cur.fetchone()[0]
     conn.close()
-    print(json.dumps({'status': 'ok', 'counts': stats}, ensure_ascii=False))
+
+    added = {k: total[k] - before.get(k, 0) for k in total}
+    print(json.dumps({
+        'status': 'ok',
+        '写库回执': {
+            '本次新增': added,
+            '库存累计': total
+        }
+    }, ensure_ascii=False))
 
 if __name__ == '__main__':
     main()

@@ -342,7 +342,8 @@ CREATE TABLE current_state (
 **每次分析结束后，输出以下内容**：
 
 > 额外强制：知识沉淀 JSON 每条记录都必须带来源注释字段，至少包含：
-> `source_url`、`source_title`、`source_quote`（对应原文摘句）、`source_date`（可得时）。
+> `source_type`（A政策原文/B官方解读/C二手报道）、`source_url`、`source_title`、`source_quote`（对应原文摘句）、`source_date`（可得时）。
+> B类引用必须附注：`[解读稿引用，非原文条款]`；C类不得入库。
 
 ```
 ## 知识沉淀包（本次分析产出）

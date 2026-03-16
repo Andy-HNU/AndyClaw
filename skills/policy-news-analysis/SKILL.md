@@ -35,10 +35,13 @@ description: Analyze policy documents and current affairs for decision signals u
 8. Output full knowledge sedimentation content (records), then write to SQLite via script. Do not report counts only.
 9. Follow reference markdown format strictly. Do not reorder/merge sections.
 10. In knowledge sedimentation JSON, include source annotation fields for each record:
+   - `source_type`: A(政策原文) / B(官方解读) / C(二手报道)
    - `source_url`: article URL
    - `source_title`: article title
    - `source_quote`: one directly supporting sentence excerpt from source
    - `source_date`: publication date if available
+11. If `source_type` is B, append this marker to quote context: `[解读稿引用，非原文条款]`.
+12. C-type sources are not allowed for sediment write-back.
 
 ## Output structure (required)
 
